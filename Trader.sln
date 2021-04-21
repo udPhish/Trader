@@ -1,0 +1,39 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30804.86
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Trader", "Trader\Trader.vcxproj", "{B70C388E-EA6E-433B-938B-46E98F7232BD}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{E4F8ECDE-77D2-47D3-AE41-CBD5C358E045}"
+	ProjectSection(SolutionItems) = preProject
+		clang-format.txt = clang-format.txt
+		license_mit.txt = license_mit.txt
+		license_wxll_3_1.txt = license_wxll_3_1.txt
+		Readme.txt = Readme.txt
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B70C388E-EA6E-433B-938B-46E98F7232BD}.Debug|x64.ActiveCfg = Debug|x64
+		{B70C388E-EA6E-433B-938B-46E98F7232BD}.Debug|x64.Build.0 = Debug|x64
+		{B70C388E-EA6E-433B-938B-46E98F7232BD}.Debug|x86.ActiveCfg = Debug|Win32
+		{B70C388E-EA6E-433B-938B-46E98F7232BD}.Debug|x86.Build.0 = Debug|Win32
+		{B70C388E-EA6E-433B-938B-46E98F7232BD}.Release|x64.ActiveCfg = Release|x64
+		{B70C388E-EA6E-433B-938B-46E98F7232BD}.Release|x64.Build.0 = Release|x64
+		{B70C388E-EA6E-433B-938B-46E98F7232BD}.Release|x86.ActiveCfg = Release|Win32
+		{B70C388E-EA6E-433B-938B-46E98F7232BD}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {747D2030-C602-4220-8F1E-CED6525E848D}
+	EndGlobalSection
+EndGlobal
