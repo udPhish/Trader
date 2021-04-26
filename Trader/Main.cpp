@@ -26,8 +26,8 @@ Main::Main() : wxFrame(nullptr, wxID_ANY, "title") {
        MenuItem::_COUNT);
 
   wxGLAttributes gl_attributes;
-  // gl_attributes.PlatformDefaults().RGBA().DoubleBuffer().Depth(16).EndList();
-  gl_attributes.PlatformDefaults().Defaults().EndList();
+   gl_attributes.PlatformDefaults().RGBA().DoubleBuffer().Depth(16).EndList();
+  //gl_attributes.PlatformDefaults().Defaults().EndList();
 
   if (!wxGLCanvas::IsDisplaySupported(gl_attributes))
     wxMessageBox("Unsupported");
@@ -49,9 +49,10 @@ Main::Main() : wxFrame(nullptr, wxID_ANY, "title") {
 
   m_plan_view = new PlanView(this, PlanList());
 
+
   m_gl_canvas = new OpenGLCanvas(this, &m_exchange_view->SelectedCandles(),
                                  &m_plan_view->SelectedPlan(), gl_attributes);
-
+  //m_gl_canvas->ShouldTest(); //TODO: Remove
   outer_sizer->Add(inner_sizer, wxSizerFlags().Expand().Proportion(4));
   outer_sizer->Add(m_logger, wxSizerFlags().Expand());
 

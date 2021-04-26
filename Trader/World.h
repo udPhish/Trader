@@ -13,9 +13,10 @@
 
 template <std::size_t Dimension>
 struct World {
-  static_assert(Dimension == 2, "Dimension not implemented");
-  using Unit = int;
+  using Unit = double;
   using Vector = std::array<Unit, Dimension>;
+  template<std::size_t Size>
+  using Matrix = std::array<Vector, Size>;
   using Face = std::array<Vector, Dimension>;
   using Simplex = std::array<Face, Dimension + 1>;
   using ID = std::size_t;
@@ -34,6 +35,25 @@ struct World {
     }
     return ret;
   }
+  static std::vector<Vector> ConvexHull_JarvisMarch(
+      std::vector<Vector> points) {
+    std::vector<Vector> hull;
+    Vector first = points.begin();
+    Vector next = first;
+    hull.push_back(*points.begin());
+  }
+  static Vector DirectionalVector(Vector a, Vector b) {
+    return Difference(b, a);
+  }
+  static Unit Slope(Vector a, Vector b) {
+    return (b[1] - a[1]) / (b[0] - a[0]);
+  }
+  static Unit InterceptY(Vector vec, Unit slope) {
+    return vec[1] - slope * vec[0];
+  }
+  static Unit InterceptY(Vector a, Vector b) {
+    return InterceptY(a, Slope(a, b));
+  }
   struct Rectangle {
     Vector bottom_left;
     Vector size;
@@ -51,7 +71,7 @@ struct World {
       Unit half_width = width() / 2;
       Unit half_height = height() / 2;
       return Rectangle{{center[0] - half_width, center[1] - half_height},
-                       {center[0] + half_width, center[1] + half_height}};
+                       {width(), height()}};
     }
   };
 
@@ -61,14 +81,14 @@ struct World {
     std::vector<std::size_t> indices;
 
     Mesh(std::vector<Vector> points) : points{points} {
-      colours.push_back(wxWHITE);
+      colours.push_back(*wxWHITE);
       for (std::size_t i = 0; i < points.size(); ++i) {
         indices.push_back(i);
       }
     }
     Mesh(std::vector<Vector> points, std::vector<std::size_t> indices)
         : points{points}, indices{indices} {
-      colours.push_back(wxWHITE);
+      colours.push_back(*wxWHITE);
     }
     Mesh(std::vector<Vector> points, std::vector<wxColour> colours)
         : points{points}, colours{colours} {
@@ -117,10 +137,10 @@ struct World {
       // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
       // glDepthFunc(GL_LEQUAL);
 
-      //glEnable(GL_DEPTH_TEST);
-      //glDepthFunc(GL_LEQUAL);
-      //glEnable(GL_BLEND);
-      //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+      // glEnable(GL_DEPTH_TEST);
+      // glDepthFunc(GL_LEQUAL);
+      // glEnable(GL_BLEND);
+      // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
       wxColour clear_colour = *wxBLACK;
       glClearColor(clear_colour.Red(), clear_colour.Green(),
                    clear_colour.Blue(), clear_colour.Alpha());
@@ -128,28 +148,27 @@ struct World {
 
       std::size_t iter = 0;
       std::size_t print_iter = 500;
+      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+      glPointSize(1);
       for (auto& entity : world.entities) {
         if (entity.second->mesh().size() > 1) {
-          glBegin(GL_POLYGON);
-          glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+          glBegin(GL_LINE_STRIP);
           Vector prev = entity.second->mesh().point(0);
-          wxColour colour = *wxBLACK;  // entity.second->mesh().colour(0);
-          glColor4ui(colour.Red(), colour.Green(),
-                    colour.Blue(), 1);
           for (std::size_t i = 0; i < entity.second->mesh().size(); ++i) {
             // glColor4f(colour.Red(), colour.Green(), colour.Blue(),
             //          colour.Alpha());
             // glVertex2f(prev[0], prev[1]);
             prev =
                 Sum(entity.second->mesh().point(i), entity.second->position());
-            colour = entity.second->mesh().colour(i);
+            wxColour colour = entity.second->mesh().colour(i);
             // glColor4f(colour.Red(), colour.Green(), colour.Blue(),
             //          colour.Alpha());
             if (!(iter % print_iter)) {
-              //Logger::Log(wxString("Vec[")
-              //            << i << "]{x:" << prev[0] << ",y:" << prev[1] << "}");
+              Logger::Log(wxString("Vec[")
+                          << i << "]{x:" << prev[0] << ",y:" << prev[1] << "}");
             }
             glVertex2i(prev[0], prev[1]);
+            glColor4f(colour.Red(), colour.Green(), colour.Blue(), 1);
           }
           glEnd();
         }
@@ -158,8 +177,13 @@ struct World {
     }
     void UpdateViewport(Rectangle rect) {
       Logger::Log(wxString("Viewport{x:")
-                  << rect.x() << ",y:" << rect.y() << ",width:"
-                  << rect.width() << ",height:" << rect.height() << "}");
+                  << rect.x() << ",y:" << rect.y() << ",width:" << rect.width()
+                  << ",height:" << rect.height() << "}");
+      glEnable(GL_TEXTURE_2D);
+      glEnable(GL_COLOR_MATERIAL);
+      glEnable(GL_BLEND);
+      glDisable(GL_DEPTH_TEST);
+      glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
       glViewport(rect.x(), rect.y(), rect.width(), rect.height());
     }
     void ProjectionOrtho() {
@@ -174,8 +198,17 @@ struct World {
       glLoadIdentity();
     }
     Rectangle VisibleRectangle() { return rect.Centered(position()); }
+    void Zoom(double amount) {
+      rect.size[0] *= amount;
+      rect.size[1] *= amount;
+    }
+    void Translate(Vector amount) {
+      m_position[0] += amount[0];
+      m_position[1] += amount[1];
+    }
   };
 
+  static bool Intersects(const Entity& lhs, const Entity& rhs) {}
   ID previous_id;
 
   std::unordered_map<ID, std::unique_ptr<View>> views;
