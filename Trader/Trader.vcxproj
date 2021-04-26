@@ -162,8 +162,10 @@
     <ClInclude Include="OpenGLCanvas.h" />
     <ClInclude Include="OpenGLFunctions.h" />
     <ClInclude Include="PlanView.h" />
+    <ClInclude Include="SFINAE.h" />
     <ClInclude Include="Strategies.h" />
     <ClInclude Include="Strategy.h" />
+    <ClInclude Include="Tensor.h" />
     <ClInclude Include="Util.h" />
     <ClInclude Include="World.h" />
   </ItemGroup>
@@ -181,8 +183,10 @@
     <ClCompile Include="OpenGLCanvas.cpp" />
     <ClCompile Include="OpenGLFunctions.cpp" />
     <ClCompile Include="PlanView.cpp" />
+    <ClCompile Include="SFINAE.cpp" />
     <ClCompile Include="Strategies.cpp" />
     <ClCompile Include="Strategy.cpp" />
+    <ClCompile Include="Tensor.cpp" />
     <ClCompile Include="Util.cpp" />
     <ClCompile Include="World.cpp" />
   </ItemGroup>
