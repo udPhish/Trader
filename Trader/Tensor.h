@@ -12,18 +12,28 @@ namespace UD {
 namespace Tensor {
 struct Incrementor {
   virtual ~Incrementor() {}
+
   virtual Incrementor& operator++() = 0;
   virtual Incrementor operator++(int) = 0;
 };
 template <class _ValueType>
 struct Iterator : public Incrementor {
   using ValueType = _ValueType;
+
   virtual ~Iterator() {}
+
   virtual ValueType& operator*() = 0;
 };
 template <class _ContainerType>
 struct IteratorWrapper : public Iterator<typename _ContainerType::value_type> {
   using ContainerType = _ContainerType;
+
+ private:
+  using Base = Iterator<typename ContainerType::value_type>;
+
+ public:
+  using typename Base::ValueType;
+
   typename ContainerType::iterator _iterator;
 
   virtual ~IteratorWrapper() {}
@@ -36,15 +46,19 @@ struct IteratorWrapper : public Iterator<typename _ContainerType::value_type> {
     _iterator++;
     return *this;
   };
-  typename Iterator<typename _ContainerType::value_type>::ValueType& operator*()
-      override {
-    return *_iterator;
-  }
+  ValueType& operator*() override { return *_iterator; }
 };
 template <class _ContainerType>
 struct ReverseIteratorWrapper
     : public Iterator<typename _ContainerType::value_type> {
   using ContainerType = _ContainerType;
+
+ private:
+  using Base = Iterator<typename ContainerType::value_type>;
+
+ public:
+  using typename Base::ValueType;
+
   typename ContainerType::reverse_iterator _iterator;
 
   virtual ~ReverseIteratorWrapper() {}
@@ -57,19 +71,20 @@ struct ReverseIteratorWrapper
     _iterator++;
     return *this;
   };
-  typename Iterator<typename _ContainerType::value_type>::ValueType& operator*()
-      override {
-    return *_iterator;
-  }
+  ValueType& operator*() override { return *_iterator; }
 };
 template <class _Type>
 struct Range {
   using Type = _Type;
   using Iterator = Iterator<Type>;
+
   virtual ~Range() {}
+
   virtual std::size_t size() = 0;
   virtual Type& at(const std::size_t& index) = 0;
+  Type at(const std::size_t& index) const { return this->at(index); }
   Type& operator[](const std::size_t& index) { return this->at(index); }
+  Type operator[](const std::size_t& index) const { return this->at(index); }
   virtual Iterator begin() = 0;
   virtual Iterator end() = 0;
   virtual Iterator rbegin() = 0;
@@ -78,18 +93,26 @@ struct Range {
 template <class _ContainerType>
 struct ContainerWrapper : public Range<typename _ContainerType::value_type> {
   using ContainerType = _ContainerType;
-  using Type = typename Range<typename ContainerType::value_type>::Type;
-  using Iterator = typename Range<typename ContainerType::value_type>::Iterator;
+
+ private:
+  using Base = Range<typename ContainerType::value_type>;
+
+ public:
+  using typename Base::Iterator;
+  using typename Base::Type;
+
   ContainerType _container;
-  ContainerWrapper() {}
+
   virtual ~ContainerWrapper() {}
-  ContainerWrapper(ContainerType container) : _container(container) {}
+  ContainerWrapper() {}
+  ContainerWrapper(ContainerType container) : _container{container} {}
+  ContainerWrapper(std::initializer_list<Type> list) : _container{list} {}
   operator ContainerType() { return _container; }
 
   ContainerType& data() { return _container; }
-
   std::size_t size() { return _container.size(); }
   Type& at(const std::size_t& index) { return _container.at(index); }
+  using Base::at;
   Iterator begin() { return IteratorWrapper{_container.begin()}; }
   Iterator end() { return IteratorWrapper{_container.end()}; }
   Iterator rbegin() { return ReverseIteratorWrapper{_container.rbegin()}; }
@@ -97,14 +120,15 @@ struct ContainerWrapper : public Range<typename _ContainerType::value_type> {
 };
 template <class Type, std::size_t Size>
 struct Array : public ContainerWrapper<std::array<Type, Size>> {
+ private:
+  using Base = ContainerWrapper<std::array<Type, Size>>;
+
+ public:
   virtual ~Array() {}
 
-  Array() {}
-  Array(std::array<Type, Size> array)
-      : ContainerWrapper<std::array<Type, Size>>{array} {}
-  operator std::array<Type, Size>() {
-    return static_cast<ContainerWrapper<std::array<Type, Size>>>(*this);
-  }
+  using Base::Base;
+
+  using Base::operator typename Base::ContainerType;
 
   auto front() { return this->data().front(); }
   auto back() { return this->data().back(); }
@@ -114,12 +138,24 @@ struct Array : public ContainerWrapper<std::array<Type, Size>> {
 template <class Type, std::size_t Size, std::size_t... Sizes>
 struct Tensor : public Array<Tensor<Type, Sizes...>, Size> {
   using Element = Tensor<Type, Sizes...>;
+
+ private:
+  using Base = Array<Element, Size>;
+
+ public:
   virtual ~Tensor() {}
+  using Base::Base;
 };
 template <class Type, std::size_t Size>
 struct Tensor<Type, Size> : public Array<Type, Size> {
   using Element = Type;
+
+ private:
+  using Base = Array<Element, Size>;
+
+ public:
   virtual ~Tensor() {}
+  using Base::Base;
 };
 
 template <class Type, std::size_t N, std::size_t M>
