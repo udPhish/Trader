@@ -153,6 +153,7 @@
     <ClInclude Include="Application.h" />
     <ClInclude Include="Boost_Serialization_chrono.h" />
     <ClInclude Include="Candle.h" />
+    <ClInclude Include="Colour.h" />
     <ClInclude Include="EntityCandle.h" />
     <ClInclude Include="Exchange.h" />
     <ClInclude Include="ExchangeView.h" />
@@ -163,6 +164,7 @@
     <ClInclude Include="OpenGLFunctions.h" />
     <ClInclude Include="PlanView.h" />
     <ClInclude Include="SFINAE.h" />
+    <ClInclude Include="Shapes.h" />
     <ClInclude Include="Strategies.h" />
     <ClInclude Include="Strategy.h" />
     <ClInclude Include="Tensor.h" />
@@ -174,6 +176,7 @@
     <ClCompile Include="APIBinance.cpp" />
     <ClCompile Include="Application.cpp" />
     <ClCompile Include="Candle.cpp" />
+    <ClCompile Include="Colour.cpp" />
     <ClCompile Include="EntityCandle.cpp" />
     <ClCompile Include="Exchange.cpp" />
     <ClCompile Include="ExchangeView.cpp" />
@@ -184,6 +187,7 @@
     <ClCompile Include="OpenGLFunctions.cpp" />
     <ClCompile Include="PlanView.cpp" />
     <ClCompile Include="SFINAE.cpp" />
+    <ClCompile Include="Shapes.cpp" />
     <ClCompile Include="Strategies.cpp" />
     <ClCompile Include="Strategy.cpp" />
     <ClCompile Include="Tensor.cpp" />
