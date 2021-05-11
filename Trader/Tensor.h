@@ -14,12 +14,12 @@ namespace Tensor {
 struct Incrementor {
   virtual ~Incrementor() {}
 
-  virtual bool operator==(const Incrementor& incrementor) = 0;
+  virtual bool operator==(const Incrementor& incrementor){};
   virtual bool operator!=(const Incrementor& incrementor) {
     return !(operator==(incrementor));
   }
-  virtual Incrementor& operator++() = 0;
-  virtual Incrementor operator++(int) = 0;
+  virtual Incrementor& operator++(){};
+  virtual Incrementor operator++(int){};
 };
 template <class _IteratorType>
 struct IteratorWrapper;
@@ -29,7 +29,7 @@ struct Iterator : public Incrementor {
 
   virtual ~Iterator() {}
 
-  virtual ValueType& operator*() = 0;
+  virtual ValueType& operator*(){};
   template <class IteratorType, class WrapperType = IteratorWrapper>
   static Iterator Wrap(IteratorType iterator) {
     return WrapperType{iterator};
@@ -99,7 +99,7 @@ struct Range {
   virtual Type& _at(const std::size_t& index) = 0;
 
  public:
-  virtual std::size_t size() = 0;
+  virtual std::size_t size() const = 0;
   Type& at(const std::size_t& index) { return this->_at(index); }
   const Type& at(const std::size_t& index) const { return this->_at(index); }
   Type& operator[](const std::size_t& index) { return this->_at(index); }
@@ -131,7 +131,7 @@ struct ContainerWrapper : public Range<typename _ContainerType::value_type> {
   operator ContainerType() { return _container; }
 
   ContainerType& data() { return _container; }
-  std::size_t size() override { return _container.size(); }
+  std::size_t size() const override { return _container.size(); }
 
  protected:
   Type& _at(const std::size_t& index) override { return _container.at(index); }
@@ -150,15 +150,17 @@ struct Array : public ContainerWrapper<std::array<Type, Size>> {
  public:
   virtual ~Array() {}
 
-  using Base::Base;
-
   using Base::operator typename Base::ContainerType;
+  using Base::Base;
 
   auto front() { return this->data().front(); }
   auto back() { return this->data().back(); }
   auto empty() const { return this->data().empty(); }
   constexpr void fill(const Type& value) { this->data().fill(value); }
 };
+
+template <class Type, std::size_t Size, std::size_t... Sizes>
+struct Tensor;
 
 template <class Type, std::size_t Size, std::size_t... Sizes>
 struct Tensor : public Array<Tensor<Type, Sizes...>, Size> {
@@ -185,25 +187,28 @@ struct Tensor<Type, Size> : public Array<Type, Size> {
  public:
   virtual ~Tensor() {}
   using Base::Base;
-  template <typename std::enable_if_t<(Size >= 1)>* = nullptr>
+  template <std::size_t S = Size,
+            typename std::enable_if_t<(Size >= 1)>* = nullptr>
   Type& x() {
     return this->at(0);
   }
-  template <typename std::enable_if_t<(Size >= 2)>* = nullptr>
+  template <std::size_t S = Size,
+            typename std::enable_if_t<(Size >= 2)>* = nullptr>
   Type& y() {
     return this->at(1);
   }
-  template <typename std::enable_if_t<(Size >= 3)>* = nullptr>
+  template <std::size_t S = Size,
+            typename std::enable_if_t<(Size >= 3)>* = nullptr>
   Type& z() {
     return this->at(2);
   }
 };
-template <class Type, std::size_t Size, std::size_t... TensorSizes>
-struct Tensor<Tensor<Type, TensorSizes...>, Size>
-    : public Tensor<Type, Size, TensorSizes...> {
-  using Tensor<Type, Size, TensorSizes...>;
-  virtual ~Tensor() {}
-};
+// template <class Type, std::size_t Size, std::size_t... TensorSizes>
+// struct Tensor<Tensor<Type, TensorSizes...>, Size>
+//    : public Tensor<Type, TensorSizes..., Size> {
+//  using Tensor<Type, TensorSizes..., Size>;
+//  virtual ~Tensor() {}
+//};
 
 template <class Type, std::size_t N, std::size_t M>
 using Matrix = Tensor<Type, N, M>;
@@ -513,20 +518,41 @@ Matrix<Type, N + 1, N + 1> RotationMatrix(Type Rx, Type Ry, Type Rz) {
                                     {0, 0, 1, 0},
                                     {0, 0, 0, 1}};
 }
+// template <class Type, std::size_t Size>
+// void Scale(Tensor<Type, Size>& tensor, const Type& factor) {
+//  for (auto& ele : tensor) ele *= factor;
+//}
+// template <class Type, std::size_t Size, std::size_t... Sizes>
+// void Scale(Tensor<Type, Size, Sizes...>& tensor, const Type& factor) {
+//  for (auto& ele : tensor) Scale(ele);
+//}
 template <class Type, std::size_t Size>
-void Scale(Tensor<Type, Size>& tensor, const Type& factor) {
-  for (auto& ele : tensor) ele *= factor;
+void Scale(Tensor<Type, Size>& lhs, const Tensor<Type, Size>& rhs) {
+  for (std::size_t i = 0; i < Size; ++i) lhs[i] *= rhs[i];
 }
 template <class Type, std::size_t Size, std::size_t... Sizes>
-void Scale(Tensor<Type, Size, Sizes...>& tensor, const Type& factor) {
-  for (auto& ele : tensor) Scale(ele);
+void Scale(Tensor<Type, Size, Sizes...>& lhs,
+           const Tensor<Type, Size, Sizes...>& rhs) {
+  for (std::size_t i = 0; i < Size; ++i) Scale(lhs[i], rhs[i]);
 }
-template <class Type, std::size_t ASize, std::size_t... ASizes,
-          std::size_t... BSizes>
-void Scale(Tensor<Type, ASize, ASizes..., BSizes...>& lhs,
+// template <class Type, std::size_t ASize, std::size_t BSize,
+//          std::size_t... BSizes>
+// void Scale(Tensor<Type, ASize, BSize, BSizes...>& lhs,
+//           const Tensor<Type, BSize, BSizes...>& rhs) {
+//  for (auto& it : lhs) Scale(it, rhs);
+//}
+// template <class Type, std::size_t ASize, std::size_t BSize,
+//          std::size_t... ASizes, std::size_t... BSizes>
+// void Scale(Tensor<Type, ASize, ASizes..., BSize, BSizes...>& lhs,
+//           const Tensor<Type, BSize, BSizes...>& rhs) {
+//  for (auto& it : lhs) Scale(it, rhs);
+//}
+template <class Type, std::size_t... ASizes, std::size_t... BSizes>
+void Scale(Tensor<Type, ASizes..., BSizes...>& lhs,
            const Tensor<Type, BSizes...>& rhs) {
-  for (std::size_t i = 0; i < ASize; ++i) Scale(lhs[i], rhs[i]);
+  for (auto& it : lhs) Scale(it, rhs);
 }
+
 template <class Type, std::size_t Size>
 void Translate(Tensor<Type, Size>& tensor, const Type& factor) {
   for (auto& ele : tensor) ele += factor;

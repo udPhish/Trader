@@ -161,5 +161,19 @@ template <class T, class... Ts>
 constexpr T product(const T& t1, const T& t2, const Ts&... ts) {
   return product(t1 * t2, ts...);
 }
+
+template <template <typename...> class base, typename derived>
+struct is_base_of_template {
+  template <typename... Ts>
+  static constexpr std::true_type test(const base<Ts...>*);
+  static constexpr std::false_type test(...);
+  using type = decltype(test(std::declval<derived*>()));
+};
+template <template <typename...> class base, typename derived>
+using is_base_of_template_t = typename is_base_of_template<base, derived>::type;
+template <template <typename...> class base, typename derived>
+inline constexpr bool is_base_of_template_v =
+    is_base_of_template<base, derived>::value;
+
 }  // namespace SFINAE
 }  // namespace UD

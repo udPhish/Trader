@@ -3,76 +3,44 @@
 
 #include "Candle.h"
 #include "World.h"
-struct EntityCandle : public World<2>::Entity {
-  Candle candle;
+struct EntityCandle : public UD::World::World<double, 2>::MeshEntity<
+                          UD::World::StaticMesh<double, 2, 6>> {
+ private:
+  using World = UD::World::World<double, 2>;
+  using Mesh = UD::World::StaticMesh<double, 2, 6>;
+  using Base = World::MeshEntity<Mesh>;
 
-  EntityCandle(Candle candle) : candle{candle} {}
-  virtual World<2>::Vector position() override {
-    double bottom = std::min(candle.open, candle.close);
-    return {static_cast<double>(candle.open_time.count()), bottom};
-  }
-  virtual World<2>::Mesh mesh() override {
-    // wxColour colour = *wxWHITE;
-    World<2>::Mesh ret(
-        {top_left(), top_middle(), top_wick(), top_right(), bottom_right(),
-         bottom_middle(), bottom_wick(), bottom_left()},
-        {0, 1, 2, 1, 3, 4, 5, 6, 5, 7, 0},
-        {*wxWHITE, *wxWHITE, *wxGREEN, *wxWHITE, *wxWHITE, *wxWHITE,
-         *wxRED, *wxWHITE});
-    return ret;
-  }
-  World<2>::Vector top_left() {
+ public:
+  EntityCandle(const Candle& candle) {
     double top = std::max(candle.open, candle.close);
-    return World<2>::Difference(
-        position(), {static_cast<double>(candle.open_time.count()), top});
-  }
-  World<2>::Vector top_middle() {
-    double top = std::max(candle.open, candle.close);
-    return World<2>::Difference(
-        position(), {static_cast<double>(candle.open_time.count()) +
-                         (static_cast<double>(candle.close_time.count()) -
-                          static_cast<double>(candle.open_time.count())) /
-                             2,
-                     top});
-  }
-  World<2>::Vector top_right() {
-    double top = std::max(candle.open, candle.close);
-    return World<2>::Difference(
-        position(), {static_cast<double>(candle.close_time.count()), top});
-  }
-  World<2>::Vector top_wick() {
-    return World<2>::Difference(
-        position(), {static_cast<double>(candle.open_time.count()) +
-                         (static_cast<double>(candle.close_time.count()) -
-                          static_cast<double>(candle.open_time.count())) /
-                             2,
-         candle.high});
-  }
-  World<2>::Vector bottom_left() {
     double bottom = std::min(candle.open, candle.close);
-    return World<2>::Difference(
-        position(), {static_cast<double>(candle.open_time.count()), bottom});
+    double left = static_cast<double>(candle.open_time.count());
+    double right = static_cast<double>(candle.close_time.count());
+    double mid = left + (right - left) / 2;
+
+    position() = World::Vector{left, bottom};
+    top_left() = World::Point{{left, top}, UD::Colour::White()} - position();
+    top_right() = World::Point{{right, top}, UD::Colour::White()} - position();
+    top_middle() = World::Point{{mid, top}, UD::Colour::White()} - position();
+    top_wick() =
+        World::Point{{mid, candle.high}, UD::Colour::Green()} - position();
+    bottom_left() =
+        World::Point{{left, bottom}, UD::Colour::White()} - position();
+    bottom_right() =
+        World::Point{{right, bottom}, UD::Colour::White()} - position();
+    bottom_middle() =
+        World::Point{{mid, bottom}, UD::Colour::White()} - position();
+    bottom_wick() =
+        World::Point{{mid, candle.low}, UD::Colour::Red()} - position();
   }
-  World<2>::Vector bottom_middle() {
-    double bottom = std::min(candle.open, candle.close);
-    return World<2>::Difference(
-        position(), {static_cast<double>(candle.open_time.count()) +
-                         (static_cast<double>(candle.close_time.count()) -
-                          static_cast<double>(candle.open_time.count())) /
-                             2,
-         bottom});
-  }
-  World<2>::Vector bottom_right() {
-    double bottom = std::min(candle.open, candle.close);
-    return World<2>::Difference(
-        position(), {static_cast<double>(candle.close_time.count()), bottom});
-  }
-  World<2>::Vector bottom_wick() {
-    return World<2>::Difference(
-        position(), {static_cast<double>(candle.open_time.count()) +
-                         (static_cast<double>(candle.close_time.count()) -
-                          static_cast<double>(candle.open_time.count())) /
-                             2,
-         candle.low});
-  }
+
+ public:
+  World::Point& top_left() { return this->mesh().at(0); }
+  World::Point& top_right() { return this->mesh().at(1); }
+  World::Point& top_middle() { return this->mesh().at(2); }
+  World::Point& top_wick() { return this->mesh().at(3); }
+  World::Point& bottom_left() { return this->mesh().at(4); }
+  World::Point& bottom_right() { return this->mesh().at(5); }
+  World::Point& bottom_middle() { return this->mesh().at(6); }
+  World::Point& bottom_wick() { return this->mesh().at(7); }
 };

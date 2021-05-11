@@ -69,34 +69,21 @@ template <class Type = unsigned char,
           Type MaxValue = std::numeric_limits<Type>::max(),
           Type MinValue = std::numeric_limits<Type>::min()>
 struct White : public Colour<Type, MaxValue, MinValue> {
-  using Base = Colour<Type, MaxValue, MinValue>;
-  using Base;
-  White() : Base{MaxValue, MaxValue, MaxValue} {}
-
- private:
-  using Base::Base;
+  White() : Colour<Type, MaxValue, MinValue>{MaxValue, MaxValue, MaxValue} {}
 };
 template <class Type = unsigned char,
           Type MaxValue = std::numeric_limits<Type>::max(),
           Type MinValue = std::numeric_limits<Type>::min()>
 struct Black : public Colour<Type, MaxValue, MinValue> {
-  using Base = Colour<Type, MaxValue, MinValue>;
-  using Base;
-  Black() : Base{MinValue, MinValue, MinValue} {}
-
- private:
-  using Base::Base;
+  Black() : Colour<Type, MaxValue, MinValue>{MinValue, MinValue, MinValue} {}
 };
 template <class Type = unsigned char,
           Type MaxValue = std::numeric_limits<Type>::max(),
           Type MinValue = std::numeric_limits<Type>::min()>
 struct Grey : public Colour<Type, MaxValue, MinValue> {
-  using Base = Colour<Type, MaxValue, MinValue>;
-  using Base;
-  Grey() : Base{MaxValue / 2, MaxValue / 2, MaxValue / 2} {}
-
- private:
-  using Base::Base;
+  Grey()
+      : Colour<Type, MaxValue, MinValue>{MaxValue / 2, MaxValue / 2,
+                                         MaxValue / 2} {}
 };
 template <class Type = unsigned char,
           Type MaxValue = std::numeric_limits<Type>::max(),
@@ -107,34 +94,19 @@ template <class Type = unsigned char,
           Type MaxValue = std::numeric_limits<Type>::max(),
           Type MinValue = std::numeric_limits<Type>::min()>
 struct Red : public Colour<Type, MaxValue, MinValue> {
-  using Base = Colour<Type, MaxValue, MinValue>;
-  using Base;
-  Red() : Base{MaxValue, MinValue, MinValue} {}
-
- private:
-  using Base::Base;
+  Red() : Colour<Type, MaxValue, MinValue>{MaxValue, MinValue, MinValue} {}
 };
 template <class Type = unsigned char,
           Type MaxValue = std::numeric_limits<Type>::max(),
           Type MinValue = std::numeric_limits<Type>::min()>
 struct Green : public Colour<Type, MaxValue, MinValue> {
-  using Base = Colour<Type, MaxValue, MinValue>;
-  using Base;
-  Green() : Base{MinValue, MaxValue, MinValue} {}
-
- private:
-  using Base::Base;
+  Green() : Colour<Type, MaxValue, MinValue>{MinValue, MaxValue, MinValue} {}
 };
 template <class Type = unsigned char,
           Type MaxValue = std::numeric_limits<Type>::max(),
           Type MinValue = std::numeric_limits<Type>::min()>
 struct Blue : public Colour<Type, MaxValue, MinValue> {
-  using Base = Colour<Type, MaxValue, MinValue>;
-  using Base;
-  Blue() : Base{MinValue, MinValue, MaxValue} {}
-
- private:
-  using Base::Base;
+  Blue() : Colour<Type, MaxValue, MinValue>{MinValue, MinValue, MaxValue} {}
 };
 }  // namespace Colour
 }  // namespace UD

@@ -26,8 +26,8 @@ class OpenGLCanvas : public wxGLCanvas {
   std::size_t m_zoom;
   int m_position;
   bool m_testing;
-  World<2> m_world;
-  World<2>::View m_view;
+  UD::World::World<double, 2> m_world;
+  UD::World::World<double, 2>::View m_view;
   // bool m_dragging;
 
   void OnSize(wxSizeEvent& event);

@@ -11,7 +11,6 @@
 
 #include "Colour.h"
 #include "Logger.h"
-#include "Shapes.h"
 #include "Tensor.h"
 
 namespace UD {
@@ -29,6 +28,7 @@ struct Point : public UD::Tensor::Vector<Type, Dimension> {
   Colour& colour() { return _colour; }
   Point() : _colour{} {}
   Point(Base vector) : Base{vector}, _colour{} {}
+  Point(Base vector, Colour colour) : Base{vector}, _colour{colour} {}
 };
 
 template <class Type, std::size_t Dimension>
@@ -43,7 +43,12 @@ struct Mesh : public UD::Tensor::Range<Point<Type, Dimension>> {
   virtual Mesh& _Scale(Vector factor) = 0;
 
  public:
-  virtual Mesh& Translate(Vector position) = 0;
+  virtual Point& _at(const std::size_t& index) override{};
+  virtual UD::Tensor::Iterator<Point> begin() override{};
+  virtual UD::Tensor::Iterator<Point> end() override{};
+  virtual UD::Tensor::Iterator<Point> rbegin() override{};
+  virtual UD::Tensor::Iterator<Point> rend() override{};
+  virtual Mesh& Translate(Vector position){};
   Mesh& Scale(Vector factor) { return _Scale(std::move(factor)); }
   Mesh& Scale(Type factor) {
     Vector vec;
@@ -72,18 +77,18 @@ struct StaticMesh : public Mesh<Type, Dimension> {
   }
   virtual std::size_t size() const override { return _points.size(); }
   virtual UD::Tensor::Iterator<Point> begin() override {
-    return UD::Tensor::Iterator<Point>::Wrap(_points.begin());
+    return UD::Tensor::IteratorWrapper<Point>{_points.begin()};
   }
   virtual UD::Tensor::Iterator<Point> end() override {
-    return UD::Tensor::Iterator<Point>::Wrap(_points.end());
+    return UD::Tensor::IteratorWrapper<Point>{_points.end()};
   }
   virtual UD::Tensor::Iterator<Point> rbegin() override {
-    return UD::Tensor::Iterator<Point>::Wrap(_points.rbegin());
+    return UD::Tensor::IteratorWrapper<Point>{_points.rbegin()};
   }
   virtual UD::Tensor::Iterator<Point> rend() override {
-    return UD::Tensor::Iterator<Point>::Wrap(_points.rend());
+    return UD::Tensor::IteratorWrapper<Point>{_points.rend()};
   }
-  PointMatrix& points() override { return _points; }
+  PointMatrix& points() { return _points; }
 
   virtual StaticMesh& Translate(Vector position) override {
     UD::Tensor::Translate(points(), position);
@@ -142,6 +147,7 @@ struct Rectangle : public StaticMesh<Type, 4, Dimension> {
                         -up};
     }
   }
+
   Point bottom_left() { return (*this)[0]; }
   Point top_left() { return (*this)[1]; }
   Point top_right() { return (*this)[2]; }
@@ -171,93 +177,22 @@ struct Rectangle : public StaticMesh<Type, 4, Dimension> {
   Type height() { return top() - bottom(); }
   void height(Type value) { top(bottom() + value); }
 };
-// template <class Type, std::size_t Dimension, std::size_t CountPoints,
-//          std::size_t CountIndices = CountPoints>
-// struct StaticMesh : public Mesh<Type, Dimension> {
-// private:
-//  using Base = Mesh<Type, Dimension>;
-//  using PointMatrix = UD::Tensor::Matrix<Type, CountPoints, Dimension>;
-//  using IndexArray = UD::Tensor::Array<std::size_t, CountIndices>;
-//  using ColourArray = UD::Tensor::Array<Colour<>, CountPoints>;
-//
-// public:
-//  template <class _IteratorType, class _IndexIteratorType>
-//  struct IndexIterator
-//      : public UD::Tensor::Iterator<typename _IteratorType::T> {
-//   private:
-//    using Base = UD::Tensor::Iterator<typename _IteratorType::T>;
-//
-//   public:
-//    using typename Base::ValueType;
-//    using IteratorType = _IteratorType;
-//    using IndexIteratorType = _IndexIteratorType;
-//    using IndexType = IndexIteratorType::T;
-//
-//    IteratorType _begin;
-//    IndexIteratorType _index_iterator;
-//
-//    bool operator==(const IndexIterator& iterator) override {
-//      return _begin == iterator._begin &&
-//             _index_iterator == iterator._index_iterator;
-//    }
-//    IteratorType& operator++() override {
-//      ++_index_iterator;
-//      return *this;
-//    }
-//    IteratorType operator++(int) override {
-//      IteratorType it{*this};
-//      _index_iterator++;
-//      return it;
-//    };
-//    ValueType& operator*() override { return *(_begin + *_index_iterator); }
-//  };
-//
-// public:
-//  using Base::Vector;
-//  PointMatrix _points;
-//  IndexArray _indices;
-//  ColourArray _colours;
-//
-//  StaticMesh(PointMatrix points, IndexArray indices, ColourArray colours)
-//      : _points{points}, _indices{indices}, _colours{colours} {}
-//  StaticMesh(PointMatrix points, ColourArray colours)
-//      : _points{points}, _colours{colours} {
-//    for (std::size_t i = 0; i < CountPoints; ++i) _indices[i] = i;
-//  }
-//
-//  StaticMesh(PointMatrix points) : StaticMesh{points, ColourArray{}} {}
-//  StaticMesh(PointMatrix points, IndexArray indices)
-//      : StaticMesh{points, indices, ColourArray{}} {}
-//
-//  virtual Type& _at(const std::size_t& index) override {
-//    return _points[_indices[index]];
-//  }
-//  virtual std::size_t size() const override { return _indices.size(); }
-//  virtual UD::Tensor::Iterator<Type> begin() override {
-//    return IndexIterator{_points.begin(), _indices.begin()};
-//  }
-//  virtual UD::Tensor::Iterator<Type> end() override {
-//    return IndexIterator{_points.begin(), _indices.end()};
-//  }
-//  virtual UD::Tensor::Iterator<Type> rbegin() override {
-//    return IndexIterator{_points.rbegin(), _indices.rbegin()};
-//  }
-//  virtual UD::Tensor::Iterator<Type> rend() override {
-//    return IndexIterator{_points.rbegin(), _indices.rend()};
-//  }
-//  UD::Tensor::Range<Type>& points() override { return _points; }
-//  IndexArray& indices() { return _indices; }
-//  UD::Tensor::Range<Type>& colours() override { return _colours; }
-//
-//  Base& Translate(Vector position) override {
-//    for (auto& point : this->points()) point += position;
-//    return *this;
-//  }
-//  Base& Scale(Vector factor) override {
-//    for (auto& point : this->points()) point *= factor;
-//    return *this;
-//  }
-//};
+
+template <class Type, std::size_t Dimension>
+struct Line : public StaticMesh<Type, 2, Dimension> {
+ private:
+  using Base = StaticMesh<Type, 2, Dimension>;
+
+ public:
+  using Base::Base;
+};
+
+static void Draw(Mesh<double, 2>& mesh) {
+  glBegin(GL_POINTS);
+  for (auto& point : mesh) {
+  }
+  glEnd();
+}
 template <class _Type, std::size_t Dimension>
 struct World {
   using Type = _Type;
@@ -272,6 +207,7 @@ struct World {
   using Face = PointMatrix<Dimension>;
   using Simplex = PointMatrix<Dimension + 1>;
   using ID = std::size_t;
+  using Rectangle = Rectangle<Type, Dimension>;
 
   using Size = Vector;
 
@@ -312,10 +248,11 @@ struct World {
   struct MeshEntity : public Entity {
     MeshType _mesh;
     virtual ~MeshEntity() {}
+    MeshEntity() {}
     MeshEntity(const MeshType& mesh) : _mesh{mesh} {}
     MeshType& mesh() { return _mesh; }
 
-    virtual void Draw() { _mesh.Draw(); }
+    virtual void Draw() { Draw(mesh()); }
   };
   static bool Contains(const Rectangle& rectangle, const Vector& vector) {
     return rectangle.top_left()[0] >= vector[0] &&
@@ -324,20 +261,20 @@ struct World {
            rectangle.bottom_right()[1] <= vector[1];
   }
   template <std::size_t Size, std::size_t NumberOfPoints>
-  static bool Intersect(const Rectangle& rectangle,
-                        const Mesh<Size, NumberOfPoints>& mesh) {
-    for (std::size_t i = 0; i < mesh.size(); ++i) {
-      if (Contains(rectangle, mesh.points()[i])) return true;
-    }
+  static bool Intersect(const Rectangle& rectangle, const Mesh& mesh) {
+    for (auto& point : mesh)
+      if (Contains(rectangle, point)) return true;
   }
   template <std::size_t Size, std::size_t NumberOfPoints>
-  static bool Contains(const Rectangle& rectangle,
-                       const Mesh<Size, NumberOfPoints>& mesh) {
-    for (std::size_t i = 0; i < mesh.size(); ++i) {
-      if (!Contains(rectangle, mesh.points()[i])) return false;
-    }
+  static bool Contains(const Rectangle& rectangle, const Mesh& mesh) {
+    for (auto& point : mesh)
+      if (!Contains(rectangle, point)) return false;
   }
   struct View : public Rectangle {
+   private:
+    using Base = Rectangle;
+
+   public:
     const World& _world;
 
     View(const World& world, Rectangle rectangle)
@@ -348,19 +285,6 @@ struct World {
     void Draw(Rectangle rect) {
       UpdateViewport(rect);
       ProjectionOrtho();
-
-      // glEnable(GL_TEXTURE_2D);
-      // glEnable(GL_COLOR_MATERIAL);
-      // glEnable(GL_BLEND);
-      // glEnable(GL_SCISSOR_TEST);
-      // glDisable(GL_DEPTH_TEST);
-      // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-      // glDepthFunc(GL_LEQUAL);
-
-      // glEnable(GL_DEPTH_TEST);
-      // glDepthFunc(GL_LEQUAL);
-      // glEnable(GL_BLEND);
-      // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
       wxColour clear_colour = *wxBLACK;
       glClearColor(clear_colour.Red(), clear_colour.Green(),
                    clear_colour.Blue(), clear_colour.Alpha());
@@ -370,7 +294,7 @@ struct World {
       std::size_t print_iter = 500;
       glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
       glPointSize(1);
-      for (auto& entity : world.entities) {
+      for (auto& entity : _world.entities) {
         entity.second.Draw();
       }
       iter++;
@@ -388,22 +312,19 @@ struct World {
     }
     void ProjectionOrtho() {
       Logger::Log(wxString("Projecting{left:")
-                  << left() << ",right:" << right() << ",bottom:" << bottom()
-                  << ",top:" << top() << "}");
+                  << this->left() << ",right:" << this->right() << ",bottom:"
+                  << this->bottom() << ",top:" << this->top() << "}");
       glMatrixMode(GL_PROJECTION);
       glLoadIdentity();
-      glOrtho(this->Rectangle::left(), right(), bottom(), top(), 0, 1);
+      glOrtho(this->left(), this->right(), this->bottom(), this->top(), 0, 1);
       glMatrixMode(GL_MODELVIEW);
       glLoadIdentity();
     }
     void Zoom(double amount) {
-      rect.size[0] *= amount;
-      rect.size[1] *= amount;
+      this->width(this->width() * amount);
+      this->height(this->height() * amount);
     }
-    void Translate(Vector amount) {
-      m_position[0] += amount[0];
-      m_position[1] += amount[1];
-    }
+    void Translate(Vector amount) { UD::Tensor::Translate(*this, amount); }
   };
 
   ID previous_id;

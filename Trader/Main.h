@@ -5,6 +5,7 @@
 #include <set>
 #include <sstream>
 #include <unordered_map>
+#include <array>
 
 #include <wx/wx.h>
 
