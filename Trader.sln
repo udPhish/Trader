@@ -7,7 +7,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Trader", "Trader\Trader.vcx
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{E4F8ECDE-77D2-47D3-AE41-CBD5C358E045}"
 	ProjectSection(SolutionItems) = preProject
-		clang-format.txt = clang-format.txt
+		.clang-format = .clang-format
 		license_mit.txt = license_mit.txt
 		license_wxll_3_1.txt = license_wxll_3_1.txt
 		Readme.txt = Readme.txt

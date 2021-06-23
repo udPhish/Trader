@@ -7,7 +7,7 @@
 
 class Application: public wxApp {
  private:
-  Main* m_main_frame;
+  Main* m_main_frame = nullptr;
  public:
   virtual bool OnInit() wxOVERRIDE;
 };

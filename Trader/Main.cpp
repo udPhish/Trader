@@ -66,6 +66,8 @@ Main::Main() : wxFrame(nullptr, wxID_ANY, "title") {
   m_exchange_view->Bind(wxEVT_LISTBOX, &Main::OnSelection, this);
   m_exchange_view->Bind(wxEVT_CHOICE, &Main::OnSelection, this);
   m_plan_view->Bind(wxEVT_LISTBOX, &Main::OnPlanSelection, this);
+
+  m_gl_canvas->InitWorld();
 }
 
 Main::~Main() {

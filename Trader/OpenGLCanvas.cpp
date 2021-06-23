@@ -12,13 +12,25 @@ OpenGLCanvas::OpenGLCanvas(wxFrame* parent, const History* candles,
       m_zoom{MAX_ZOOM / 2},
       m_testing{false},
       m_world{},
-      m_view{m_world.CreateView(
-          UD::World::World<double, 2>::Rectangle({0, 0}, {1, 1}))} {
+      m_dragging{false},
+      m_old_x{0},
+      m_view{&m_world.CreateView(
+          UD::World::World<double, 2>::Rectangle{{0.0, 0.0}, {0.0, 0.0}})},
+      m_strat_view{&m_world.CreateView(
+          UD::World::World<double, 2>::Rectangle{{0.0, 0.0}, {0.0, 0.0}})},
+      m_strat_id{},
+      m_mouse_x_id{},
+      m_mouse_y_id{} {
   Bind(wxEVT_SIZE, &OpenGLCanvas::OnSize, this);
   Bind(wxEVT_PAINT, &OpenGLCanvas::OnPaint, this);
 
   Bind(wxEVT_MOUSEWHEEL, &OpenGLCanvas::OnMouseWheel, this);
   Bind(wxEVT_KEY_DOWN, &OpenGLCanvas::OnKeyDown, this);
+  Bind(wxEVT_MOTION, &OpenGLCanvas::OnMouseMotion, this);
+  Bind(wxEVT_LEAVE_WINDOW, &OpenGLCanvas::OnMouseLeaveWindow, this);
+  Bind(wxEVT_LEFT_UP, &OpenGLCanvas::OnMouseLeftUp, this);
+  Bind(wxEVT_LEFT_DOWN, &OpenGLCanvas::OnMouseLeftDown, this);
+
   // Bind(wxEVT_LEFT_DOWN, &OpenGLCanvas::OnMouseLeftDown, this);
   // Bind(wxEVT_LEFT_UP, &OpenGLCanvas::OnMouseLeftUp, this);
   // Bind(wxEVT_MOTION, &OpenGLCanvas::OnMouseMotion, this);
@@ -51,10 +63,12 @@ OpenGLCanvas::~OpenGLCanvas() {}
 void OpenGLCanvas::ShouldTest(bool should) { m_testing = should; }
 void OpenGLCanvas::UpdateCandles(const History* candles) {
   m_candles = candles;
+  InitWorld();
   Refresh();
 }
 void OpenGLCanvas::UpdatePlan(const Plan* plan) {
   m_plan = plan;
+  InitWorld();
   Refresh();
 }
 void OpenGLCanvas::PrepareViewport() {
@@ -85,156 +99,128 @@ void OpenGLCanvas::OnSize(wxSizeEvent& event) {
   Refresh();
   // event.Skip();
 }
-void OpenGLCanvas::DrawTest() {
-  wxGLCanvas::SetCurrent(*m_context);
-  wxPaintDC dc(this);
+void OpenGLCanvas::InitWorld() {
+  if (!m_candles) return;
+  if (m_candles->size() <= 0) return;
+  m_world.Clear();
+  m_view = &m_world.CreateView(
+      UD::World::World<double, 2>::Rectangle{{0.0, 0.0}, {0.0, 0.0}});
+  m_strat_view = &m_world.CreateView(
+      UD::World::World<double, 2>::Rectangle{{0.0, 0.0}, {0.0, 0.0}});
 
-  // wxColour clear_colour = *wxRED;
-  // glClearColor(clear_colour.Red(), clear_colour.Green(),
-  // clear_colour.Blue(),
-  //             clear_colour.Alpha());
-  // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  auto plan_results = m_plan->Run(*m_candles);
+  auto val_results = m_plan->Assess(*m_candles);
+  std::vector<UD::World::World<double, 2>::ID> entities;
+  for (auto& candle : *m_candles) {
+    entities.push_back(m_world.Add<EntityCandle>(candle, plan_results[candle]));
+  }
 
-  // PrepareViewport();
-  //// white background
-  // glColor4f(1, 1, 1, 1);
-  // glBegin(GL_QUADS);
-  // glVertex3f(0, 0, 0);
-  // glVertex3f(GetSize().x, 0, 0);
-  // glVertex3f(GetSize().x, GetSize().y, 0);
-  // glVertex3f(0, GetSize().y, 0);
-  // glEnd();
+  auto& temp_ent = *m_world.entities.begin()->second;
+  double max_height = temp_ent.mesh().MaxY() + temp_ent.position().y();
+  double min_height = temp_ent.mesh().MinY() + temp_ent.position().y();
+  for (auto& ent : m_world.entities) {
+    double maxy = ent.second->mesh().MaxY() + ent.second->position().y();
+    double miny = ent.second->mesh().MinY() + ent.second->position().y();
+    max_height = maxy > max_height ? maxy : max_height;
+    min_height = miny < min_height ? miny : min_height;
+  }
+  auto vm = UD::World::VariableMesh<double, 2>();
+  auto col_white = UD::Colour::White();
+  double min_val = val_results.begin()->second;
+  double max_val = min_val;
+  double cumulative = 0;
+  std::vector<double> valvec;
+  for (auto& res : val_results) {
+    cumulative += res.second;
+    if (cumulative < min_val) min_val = cumulative;
+    if (cumulative > max_val) max_val = cumulative;
+    valvec.push_back(cumulative);
+  }
+  for (auto& v : valvec) {
+    auto basedv = (v - min_val);
+    auto ratev = (basedv / (max_val - min_val));
+    auto newrate = ratev * (max_height - min_height);
+    auto newv = newrate + min_height;
 
-  //// red square
-  // glColor4f(1, 0, 0, 1);
-  // glBegin(GL_QUADS);
-  // glVertex3f(GetSize().x / 8, GetSize().y / 3, 0);
-  // glVertex3f(GetSize().x * 3 / 8, GetSize().y / 3, 0);
-  // glVertex3f(GetSize().x * 3 / 8, GetSize().y * 2 / 3, 0);
-  // glVertex3f(GetSize().x / 8, GetSize().y * 2 / 3, 0);
-  // glEnd();
-  World<2> world;
-  struct nen : public World<2>::Entity {
-    World<2>::Mesh mesh() override {
-      return World<2>::Mesh({{0, 0}, {1, 0}, {0, 1}});
-    }
-    World<2>::Vector position() override { return {0, 0}; }
-  };
-  nen n;
-  world.Add<nen>(n);
-  auto& view = world.CreateView({0, 0, 4, 4}, {0, 0});
+    v = ((v - min_val) / (max_val - min_val)) * (max_height - min_height) +
+        min_height;
+  }
 
-  wxSize frame = GetSize();
-  view.Draw({0, 0, static_cast<double>(frame.x), static_cast<double>(frame.y)});
+  UD::Math::Type::ULong icount = 0;
+  for (auto& res : val_results) {
+    auto t = res.first.open_time.count() +
+             (res.first.close_time.count() - res.first.open_time.count()) / 2;
+    vm.push_back({{static_cast<double>(t), valvec[icount]}, col_white});
+    ++icount;
+  }
+  m_strat_id = m_world.Add<UD::World::World<double, 2>::Entity>(vm);
+  entities.push_back(m_strat_id);
+  m_view->Fit(entities);
+  // std::vector<UD::World::World<double, 2>::ID> strats;
+  // strats.push_back(m_strat_id);
+  // m_strat_view->Fit(strats);
+
+  auto mouselocation = wxGetMousePosition();
+  double mousex = mouselocation.x - this->GetScreenPosition().x;
+  double mousey = mouselocation.y - this->GetScreenPosition().y;
+
+  wxSize framesize = GetSize();
+
+  mousex =
+      m_view->left() + (mousex / framesize.GetX()) * m_view->rect().width();
+  mousey = m_view->top() - (mousey / framesize.GetY()) * m_view->rect().width();
+
+  auto xaxis = UD::World::StaticMesh<double, 2, 3>{
+      UD::World::World<double, 2>::Point{{m_view->left(), mousey}, col_white},
+      UD::World::World<double, 2>::Point{
+          {m_view->left() + m_view->rect().width() / 2, mousey}, col_white},
+      UD::World::World<double, 2>::Point{{m_view->right(), mousey}, col_white}};
+  auto yaxis = UD::World::StaticMesh<double, 2, 3>{
+      UD::World::World<double, 2>::Point{{mousex, m_view->bottom()}, col_white},
+      UD::World::World<double, 2>::Point{
+          {mousex, m_view->bottom() + m_view->rect().height() / 2}, col_white},
+      UD::World::World<double, 2>::Point{{mousex, m_view->top()}, col_white}};
+  m_mouse_x_id = m_world.Add<UD::World::World<double, 2>::Entity>(xaxis);
+  m_mouse_y_id = m_world.Add<UD::World::World<double, 2>::Entity>(yaxis);
+  // entities.push_back(m_mouse_x_id);
+  // entities.push_back(m_mouse_y_id);
 }
 void OpenGLCanvas::OnPaint(wxPaintEvent& evt) {
   if (!IsShown()) return;
-  if (m_testing) {
-    DrawTest();
-    glFlush();
-    SwapBuffers();
-    return;
-  }
-
-  if (!m_candles) return;
-  if (m_candles->size() <= 0) return;
 
   wxPaintDC dc(this);
 
   wxGLCanvas::SetCurrent(*m_context);
 
-  m_world.Clear();
-  for (auto& candle : *m_candles) {
-    m_world.Add<EntityCandle>(candle);
-  }
-  auto times = m_candles->ExtractOpenTime();
-  auto lows = m_candles->ExtractLow();
-  auto highs = m_candles->ExtractHigh();
-  int min_time = times[0].count();
-  int max_time = min_time;
-  double lowest = lows[0];
-  double highest = highs[0];
-  for (std::size_t i = 1; i < times.size(); ++i) {
-    min_time = std::min(min_time, times[i].count());
-    max_time = std::max(max_time, times[i].count());
-    lowest = std::min(lowest, lows[i]);
-    highest = std::max(highest, highs[i]);
-  }
-
-  World<2>::Rectangle rect = {0, 0, max_time - min_time, highest - lowest};
-  World<2>::Vector vec = {min_time + (max_time - min_time) / 2,
-                          lowest + (highest - lowest) / 2};
-  auto& view = m_world.CreateView(rect, vec);
-
   wxSize frame = GetSize();
-  Logger::Log(wxString("frame{") << frame.GetX() << "," << frame.GetY() << "}");
-  view.Draw({0, 0, static_cast<double>(frame.GetX()),
-             static_cast<double>(frame.GetY())});
-  // view.Draw({0, 0, frame.GetX(), frame.GetY()});
-  // auto& w
+  auto& strat_entity =
+      m_world.Get<UD::World::World<double, 2>::Entity>(m_strat_id);
 
-  // wxGLCanvas::SetCurrent(*m_context);
-  // glEnable(GL_DEPTH_TEST);
-  // glDepthFunc(GL_LEQUAL);
-  // glEnable(GL_BLEND);
-  // glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  // glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-  // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  // double max_close = 0;
-  // double min_close = 0;
-  // if (m_candles->size() > 0) {
-  //  auto strat = m_plan->Run(*m_candles);
-  //  int last_index = m_candles->size() - (m_position - m_zoom / 2);
-  //  int first_index = m_candles->size() - (m_position + m_zoom / 2);
-  //  if (first_index >= m_candles->size()) return;
-  //  if (last_index < 0) return;
-  //  auto first = std::next(m_candles->begin(), std::max(first_index, 0));
-  //  auto last = std::next(
-  //      m_candles->begin(),
-  //      std::min(static_cast<std::size_t>(last_index), m_candles->size()));
-  //  max_close = first->close;
-  //  min_close = first->close;
-  //  for (auto it = first; it != last; ++it) {
-  //    max_close = std::max(max_close, it->close);
-  //    min_close = std::min(min_close, it->close);
-  //  }
-  //  glBegin(GL_LINES);
-  //  auto it = first;
-  //  int count = last_index - first_index;
-  //  GLfloat prev_x = 0;
-  //  GLfloat prev_y = 0;
-  //  for (int i = first_index; i < last_index; ++i) {
-  //    if (i >= 0 && i < m_candles->size()) {
-  //      if (strat.at(*it) == Position::Long) {
-  //        glColor4f(0, 1, 0, 1);
-  //      } else {
-  //        glColor4f(1, 0, 0, 1);
-  //      }
-  //      glVertex2f(prev_x, prev_y);
-  //      prev_x = (static_cast<double>(i) - first_index) / count;
-  //      prev_y = (it->close - min_close) / (max_close - min_close);
-  //      glVertex2f(prev_x, prev_y);
-  //      ++it;
-  //    }
-  //  }
-  //  // for (std::size_t i = 0; i < m_candles->size(); ++i) {
-  //  //  auto current = std::next(m_candles->begin(), i);
-  //  //  if (strat.at(current->open_time) == Strategy::Position::Long) {
-  //  //    glColor4f(0, 1, 0, 1);
-  //  //  } else {
-  //  //    glColor4f(1, 0, 0, 1);
-  //  //  }
-  //  //  glVertex2f((double)i / (double)m_candles->size(),
-  //  //             (current->close - min_close) / (max_close - min_close));
-  //  //}
-  //  glEnd();
-  //}
+  m_view->FitYExcluding(m_view->VisibleX(),
+                        {m_mouse_x_id, m_mouse_y_id, m_strat_id});
+  strat_entity.ScaleYTo(m_view->bottom(), m_view->top());
+  strat_entity.ReCenterY(m_view->center().y());
+
+  m_view->Draw(
+      {{0.0, 0.0},  // static_cast<double>(frame.GetY()) / 3.0},
+       {static_cast<double>(frame.GetX()), static_cast<double>(frame.GetY())}});
+
+  // m_strat_view->Draw({{0.0, 0.0},
+  //                   {static_cast<double>(frame.GetX()),
+  //                    static_cast<double>(frame.GetY())/3.0 }},
+  //                  {m_strat_id, m_mouse_x_id});
 
   glFlush();
   SwapBuffers();
 }
 
 void OpenGLCanvas::OnMouseWheel(wxMouseEvent& evt) {
+  if (evt.GetWheelRotation() > 0) {
+    m_view->ZoomWidth(0.8);
+  } else {
+    m_view->ZoomWidth(1.2);
+  }
+  Refresh();
   // if (m_candles->empty()) return;
   // if (evt.GetWheelRotation() > 0) {
   //  if (m_zoom >= MIN_ZOOM + ZOOM_INCREMENT) {
@@ -269,18 +255,57 @@ void OpenGLCanvas::OnKeyDown(wxKeyEvent& evt) {
   //}
   // Refresh();
 }
-// void OpenGLCanvas::OnMouseLeftUp(wxMouseEvent& evt) {
-//  m_dragging = false;
-//  evt.Skip();
-//}
-// void OpenGLCanvas::OnMouseLeftDown(wxMouseEvent& evt) {
-//  m_dragging = true;
-//  evt.Skip();
-//}
-// void OpenGLCanvas::OnMouseMotion(wxMouseEvent& evt) {
-//  if (evt.LeftIsDown() && evt.Dragging()) {
-//  }
-//}
+void OpenGLCanvas::OnMouseLeftUp(wxMouseEvent& evt) { m_dragging = false; }
+void OpenGLCanvas::OnMouseLeftDown(wxMouseEvent& evt) {
+  m_dragging = true;
+  m_old_x = evt.GetX();
+}
+void OpenGLCanvas::OnMouseMotion(wxMouseEvent& evt) {
+  auto col_white = UD::Colour::White();
+  auto mouselocation = wxGetMousePosition();
+  double mousex = mouselocation.x - this->GetScreenPosition().x;
+  double mousey = mouselocation.y - this->GetScreenPosition().y;
+
+  wxSize framesize = GetSize();
+
+  mousex =
+      m_view->left() + (mousex / framesize.GetX()) * m_view->rect().width();
+  mousey =
+      m_view->top() - (mousey / framesize.GetY()) * m_view->rect().height();
+
+  auto xaxis = UD::World::StaticMesh<double, 2, 3>{
+      UD::World::World<double, 2>::Point{{m_view->left(), mousey}, col_white},
+      UD::World::World<double, 2>::Point{
+          {m_view->left() + m_view->rect().width() / 2, mousey}, col_white},
+      UD::World::World<double, 2>::Point{{m_view->right(), mousey}, col_white}};
+  auto yaxis = UD::World::StaticMesh<double, 2, 3>{
+      UD::World::World<double, 2>::Point{{mousex, m_view->bottom()}, col_white},
+      UD::World::World<double, 2>::Point{
+          {mousex, m_view->bottom() + m_view->rect().height() / 2}, col_white},
+      UD::World::World<double, 2>::Point{{mousex, m_view->top()}, col_white}};
+
+  m_world.Get<UD::World::World<double, 2>::Entity>(m_mouse_x_id)
+      .ExchangeMesh(xaxis);
+  m_world.Get<UD::World::World<double, 2>::Entity>(m_mouse_y_id)
+      .ExchangeMesh(yaxis);
+  // m_world.Get<UD::World::World<double, 2>::Entity>(m_mouse_x_id).mesh() =
+  // xaxis; m_world.Get<UD::World::World<double,
+  // 2>::Entity>(m_mouse_y_id).mesh() = yaxis;
+
+  if (m_dragging && evt.Dragging()) {
+    wxSize frame = GetSize();
+    double x = evt.GetX() - m_old_x;
+    m_old_x = evt.GetX();
+
+    double diff = x / static_cast<double>(frame.GetX());
+
+    double ref_scale = m_view->right() - m_view->left();
+    double ref_diff = ref_scale * diff;
+    m_view->position().x() -= ref_diff;
+  }
+  Refresh();
+}
+void OpenGLCanvas::OnMouseLeaveWindow(wxMouseEvent& evt) { m_dragging = false; }
 
 const std::size_t OpenGLCanvas::MAX_ZOOM = 1000;
 const std::size_t OpenGLCanvas::MIN_ZOOM = 100;

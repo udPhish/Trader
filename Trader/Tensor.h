@@ -2,682 +2,561 @@
 
 #include <array>
 #include <cmath>
+#include <concepts>
 #include <functional>
 #include <iostream>
 
 #include <boost/math/constants/constants.hpp>
 
+#include "Container.h"
+#include "Math.h"
 #include "SFINAE.h"
-
+#include "Traits.h"
 namespace UD {
 namespace Tensor {
-struct Incrementor {
-  virtual ~Incrementor() {}
-
-  virtual bool operator==(const Incrementor& incrementor){};
-  virtual bool operator!=(const Incrementor& incrementor) {
-    return !(operator==(incrementor));
-  }
-  virtual Incrementor& operator++(){};
-  virtual Incrementor operator++(int){};
+template <Math::Type::ULong _Size, class _Element, class _Type = typename _Element::Traits::Type>
+struct Tensor;
+template <class _Type, Math::Type::ULong _Size, Math::Type::ULong... _Sizes>
+struct PureTensorHelper {
+  using Type = Tensor<_Size, PureTensorHelper<_Type, _Sizes...>, _Type>;
 };
-template <class _IteratorType>
-struct IteratorWrapper;
-template <class _ValueType>
-struct Iterator : public Incrementor {
-  using ValueType = _ValueType;
-
-  virtual ~Iterator() {}
-
-  virtual ValueType& operator*(){};
-  template <class IteratorType, class WrapperType = IteratorWrapper>
-  static Iterator Wrap(IteratorType iterator) {
-    return WrapperType{iterator};
-  }
+template <class _Type, Math::Type::ULong _Size>
+struct PureTensorHelper<_Type, _Size> {
+  using Type = _Type;
 };
-template <class _IteratorType>
-struct IteratorWrapper : public Iterator<typename _IteratorType::T> {
-  using IteratorType = _IteratorType;
+template <class Type, Math::Type::ULong Size, Math::Type::ULong... Sizes>
+using PureTensor = Tensor<Size, typename PureTensorHelper<Type, Size, Sizes...>::Type, Type>;
+template <Math::Type::ULong N, class Element, class Type = Element>
+using Vector = Tensor<N, Element, Type>;
+template <class Type, std::size_t N>
+using PureVector = Vector<N, Type>;
+template <Math::Type::ULong N, Math::Type::ULong M, class Element, class Type = Element>
+using Matrix = Tensor<M, Vector<N, Element, Type>>;
+template <class Type, std::size_t N, std::size_t M>
+using PureMatrix = Matrix<N, M, Type>;
+}  // namespace Tensor
+
+namespace Traits {
+namespace detail {
+template <class T>
+struct TensorBase;
+template <Math::Type::ULong _Size, class _Element, class _Type>
+struct TensorBase<Tensor::Tensor<_Size, _Element, _Type>> {
+  using Type = _Type;
+};
+}  // namespace detail
+
+template <Math::Type::ULong _Size, class _Element, class _Type, class _Leaf>
+requires(!std::is_same_v<_Element, _Type>) struct Register<Tensor::Tensor<_Size, _Element, _Type>, _Leaf>
+    : public detail::TensorBase<Tensor::Tensor<_Size, _Element, _Type>>, public Inherit<_Leaf, Container::Array<_Element, _Size>> {
+  static constexpr Math::Type::ULong Order() { return 1 + Register::Element::Traits::Order(); }
 
  private:
-  using Base = Iterator<typename _IteratorType::T>;
+  template <Math::Type::Long Adjustment>
+  struct RelativeHelper : public Tensor::Tensor<Math::Clamp<Math::Type::ULong, Math::Type::ULong>(
+                                                    Math::Clamp<Math::Type::ULong, Math::Type::Long>(Register::Size()) + Adjustment),
+                                                typename Register::Element::Traits::template Relative<Adjustment>, typename Register::Type> {};
 
  public:
-  using typename Base::ValueType;
-
-  IteratorType _iterator;
-
-  virtual ~IteratorWrapper() {}
-
-  bool operator==(const IteratorWrapper& iterator) override {
-    return _iterator == iterator._iterator;
-  }
-  IteratorWrapper& operator++() override {
-    ++_iterator;
-    return *this;
-  }
-  IteratorWrapper operator++(int) override {
-    IteratorWrapper it{*this};
-    _iterator++;
-    return it;
-  };
-  ValueType& operator*() override { return *_iterator; }
+  template <Math::Type::Long Adjustment>
+  using Relative = RelativeHelper<Adjustment>;
 };
-// template <class _ContainerType>
-// struct ReverseIteratorWrapper
-//    : public Iterator<typename _ContainerType::value_type> {
-//  using ContainerType = _ContainerType;
-//
+template <Math::Type::ULong _Size, class _Type, class _Leaf>
+struct Register<Tensor::Tensor<_Size, _Type, _Type>, _Leaf> : public detail::TensorBase<Tensor::Tensor<_Size, _Type, _Type>>,
+                                                              public Inherit<_Leaf, Container::Array<_Type, _Size>> {
+  static constexpr Math::Type::ULong Order() { return 1; }
+  template <Math::Type::Long Adjustment>
+  using Relative = Tensor::Tensor<Math::Clamp<Math::Type::Long, Math::Type::ULong>(
+                                      Math::Clamp<Math::Type::ULong, Math::Type::Long>(Register::Size()) + Adjustment),
+                                  typename Register::Element, typename Register::Type>;
+};
+// template <class T, class _Derived>
+// struct SimpleTensorTraits;
+// template <Math::Type::ULong _Size, class _Element, class _Type, class
+// _Derived> struct SimpleTensorTraits<Tensor::Tensor<_Size, _Element, _Type>,
+// _Derived>
+//    : public Traits<Container::Array<_Element, _Size>, _Derived> {
 // private:
-//  using Base = Iterator<typename ContainerType::value_type>;
+//  using Base = Traits<Container::Array<_Element, _Size>, _Derived>;
 //
 // public:
-//  using typename Base::ValueType;
-//
-//  typename ContainerType::reverse_iterator _iterator;
-//
-//  virtual ~ReverseIteratorWrapper() {}
-//
-//  ReverseIteratorWrapper& operator++() override {
-//    ++_iterator;
-//    return *this;
-//  }
-//  ReverseIteratorWrapper operator++(int) override {
-//    _iterator++;
-//    return *this;
-//  };
-//  ValueType& operator*() override { return *_iterator; }
+//  using Type = _Type;
 //};
-template <class _Type>
-struct Range {
-  using Type = _Type;
-  using Iterator = Iterator<Type>;
+// template <Math::Type::ULong _Size, class _Element, class _Type, class
+// _Derived> requires(!std::is_same_v<_Element, _Type>) struct Traits<
+//    Tensor::Tensor<_Size, _Element, _Type>, _Derived>
+//    : public SimpleTensorTraits<Tensor::Tensor<_Size, _Element, _Type>,
+//                                _Derived> {
+// private:
+//  using Base =
+//      SimpleTensorTraits<Tensor::Tensor<_Size, _Element, _Type>, _Derived>;
+//
+// public:
+//  static constexpr Math::Type::ULong Order() {
+//    return 1 + _Element::Traits::Order();
+//  }
+//
+// private:
+//  template <Math::Type::Long Adjustment>
+//  struct RelativeHelper
+//      : public Tensor::Tensor<
+//            Math::Clamp<Math::Type::ULong, Math::Type::ULong>(
+//                Math::Clamp<Math::Type::ULong, Math::Type::Long>(Base::Size())
+//                + Adjustment),
+//            typename Traits<typename Traits::Element>::template
+//            RelativeHelper<
+//                Adjustment>,
+//            typename Base::Type> {};
+//
+// public:
+//  template <Math::Type::Long Adjustment>
+//  using Relative = RelativeHelper<Adjustment>;
+//};
+// template <Math::Type::ULong _Size, class _Type, class _Derived>
+// struct Traits<Tensor::Tensor<_Size, _Type, _Type>, _Derived>
+//    : public SimpleTensorTraits<Tensor::Tensor<_Size, _Type, _Type>, _Derived>
+//    {
+// private:
+//  using Base =
+//      SimpleTensorTraits<Tensor::Tensor<_Size, _Type, _Type>, _Derived>;
+//
+// public:
+//  static constexpr Math::Type::ULong Order() { return 1; }
+//  template <Math::Type::Long Adjustment>
+//  using Relative =
+//      Tensor::Tensor<Math::Clamp<Math::Type::Long, Math::Type::ULong>(
+//                         Math::Clamp<Math::Type::ULong, Math::Type::Long>(
+//                             Base::Size()) +
+//                         Adjustment),
+//                     typename Base::Element, typename Base::Type>;
+//};
 
-  virtual ~Range() {}
+}  // namespace Traits
+namespace Tensor::Concepts {
+template <class T>
+concept False = false;
+template <class T>
+concept Tensor = requires(T t) {
+  typename Traits::Traits<T>;
+  typename Traits::Traits<T>::Type;
+  Math::Concepts::Arithmeticable<typename Traits::Traits<T>::Type>;
+  typename Traits::Traits<T>::Element;
+  std::same_as<typename Traits::Traits<T>::Element, typename Traits::Traits<T>::Type> || requires() {
+    Tensor<typename Traits::Traits<T>::Element>;
+    std::same_as<typename Traits::Traits<typename Traits::Traits<T>::Element>::Type, typename Traits::Traits<T>::Type>;
+  };
 
- protected:
-  virtual Type& _at(const std::size_t& index) = 0;
+  { Traits::Traits<T>::Size() }
+  ->std::convertible_to<const Math::Type::ULong>;
+  { Traits::Traits<T>::Order() }
+  ->std::convertible_to<const Math::Type::ULong>;
+};
+template <class T>
+concept BaseTensor = Tensor<T>&& std::same_as<typename Traits::Traits<T>::Element, typename Traits::Traits<T>::Type>;
+template <class T>
+concept Vector = BaseTensor<T>;
+template <class T>
+concept Matrix = Tensor<T>&& Vector<typename Traits::Traits<T>::Element>;
+template <class T>
+concept SquareMatrix = Matrix<T> && (Traits::Traits<T>::Size == Traits::Traits<typename Traits::Traits<T>::Element>::Size);
 
- public:
-  virtual std::size_t size() const = 0;
-  Type& at(const std::size_t& index) { return this->_at(index); }
-  const Type& at(const std::size_t& index) const { return this->_at(index); }
-  Type& operator[](const std::size_t& index) { return this->_at(index); }
-  const Type& operator[](const std::size_t& index) const {
-    return this->_at(index);
+template <class T, class U, Math::Type::Long Size, Math::Type::Long... Sizes>
+concept Relative =
+    Tensor<T>&& Tensor<U>&& std::same_as<typename Traits::Traits<T>::Type, typename Traits::Traits<U>::Type>&& Traits::Traits<T>::Order ==
+        Traits::Traits<U>::Order &&
+    (Traits::Traits<T>::Size + Size == Traits::Traits<U>::Size) &&
+    (BaseTensor<T> || Relative<typename Traits::Traits<T>::Element, typename Traits::Traits<U>::Element, Sizes...>);
+template <class T, class U>
+concept SubTensor = Tensor<T>&& Tensor<U>&& std::same_as<typename Traits::Traits<T>::Type, typename Traits::Traits<U>::Type> &&
+                    ((Traits::Traits<T>::Order == Traits::Traits<U>::Order && Traits::Traits<T>::Size <= Traits::Traits<U>::Size &&
+                      (BaseTensor<T> || SubTensor<typename Traits::Traits<T>::Element, typename Traits::Traits<U>::Element>)) ||
+                     (Traits::Traits<T>::Order < Traits::Traits<U>::Order && SubTensor<T, typename Traits::Traits<U>::Element>));
+template <class T, class U>
+concept SuperTensor = SubTensor<U, T>;
+
+template <class T>
+concept InterfacedTensor = Tensor<T>&& requires(T t) {
+  requires requires(Math::Type::ULong i) {
+    { t[i] }
+    ->std::same_as<typename Traits::Traits<T>::Element>;
+    { t.at(i) }
+    ->std::same_as<typename Traits::Traits<T>::Element>;
+  };
+  requires requires(Math::Type::ULong first, Math::Type::ULong last) {
+    requires last <= Traits::Traits<T>::Size&& first <= last;
+
+    { t.Sub(first, last) }
+    ->Relative<T, -(last - first)>;
+  };
+};
+}  // namespace Tensor::Concepts
+
+namespace Tensor {
+template <Math::Type::ULong _Size, class _Element, class _Type>
+struct Tensor : public Container::Array<_Element, _Size> {
+  using Traits = Traits::Traits<Tensor>;
+  static_assert(Concepts::template Tensor<Tensor>, "Does not meet Tensor concept requirements.");
+
+ private:
+  using Base = Container::Array<typename Traits::Element, Traits::Size()>;
+
+  template <Math::Type::ULong SizeB, class ElementB, class TypeB>
+  requires(Concepts::SubTensor<Tensor<SizeB, ElementB, TypeB>, typename Traits::Self> &&
+           (Traits::Order() == Tensor<SizeB, ElementB, TypeB>::Traits::Order())) static Tensor
+      Construct(const Tensor<SizeB, ElementB, TypeB>& other) {
+    Tensor ret;
+    for (Math::Type::ULong i = 0; i < SizeB; ++i) ret[i] = other[i];
+    return ret;
   }
-  virtual Iterator begin() = 0;
-  virtual Iterator end() = 0;
-  virtual Iterator rbegin() = 0;
-  virtual Iterator rend() = 0;
-};
-template <class _ContainerType>
-struct ContainerWrapper : public Range<typename _ContainerType::value_type> {
-  using ContainerType = _ContainerType;
-
- private:
-  using Base = Range<typename ContainerType::value_type>;
-
- public:
-  using typename Base::Iterator;
-  using typename Base::Type;
-
-  ContainerType _container;
-
-  virtual ~ContainerWrapper() {}
-  ContainerWrapper() {}
-  ContainerWrapper(ContainerType container) : _container{container} {}
-  ContainerWrapper(std::initializer_list<Type> list) : _container{list} {}
-  operator ContainerType() { return _container; }
-
-  ContainerType& data() { return _container; }
-  std::size_t size() const override { return _container.size(); }
-
- protected:
-  Type& _at(const std::size_t& index) override { return _container.at(index); }
-
- public:
-  Iterator begin() override { return Iterator::Wrap(_container.begin()); }
-  Iterator end() override { return Iterator::Wrap(_container.end()); }
-  Iterator rbegin() override { return Iterator::Wrap(_container.rbegin()); }
-  Iterator rend() override { return Iterator::Wrap(_container.rend()); }
-};
-template <class Type, std::size_t Size>
-struct Array : public ContainerWrapper<std::array<Type, Size>> {
- private:
-  using Base = ContainerWrapper<std::array<Type, Size>>;
-
- public:
-  virtual ~Array() {}
-
-  using Base::operator typename Base::ContainerType;
-  using Base::Base;
-
-  auto front() { return this->data().front(); }
-  auto back() { return this->data().back(); }
-  auto empty() const { return this->data().empty(); }
-  constexpr void fill(const Type& value) { this->data().fill(value); }
-};
-
-template <class Type, std::size_t Size, std::size_t... Sizes>
-struct Tensor;
-
-template <class Type, std::size_t Size, std::size_t... Sizes>
-struct Tensor : public Array<Tensor<Type, Sizes...>, Size> {
-  using Element = Tensor<Type, Sizes...>;
-
- private:
-  using Base = Array<Element, Size>;
+  template <Math::Type::ULong SizeB, class ElementB, class TypeB>
+  requires(Concepts::SubTensor<Tensor<SizeB, ElementB, TypeB>, typename Traits::Self>&& Traits::Order() >
+           Tensor<SizeB, ElementB, TypeB>::Traits::Order()) static Tensor Construct(const Tensor<SizeB, ElementB, TypeB>& other) {
+    Tensor ret;
+    *ret.front() = typename Traits::Element::Construct(other);
+    return ret;
+  }
 
  public:
   virtual ~Tensor() {}
   using Base::Base;
-  using Base::fill;
-  constexpr void fill(const Type& value) {
-    for (auto& element : *this) element.fill(value);
-  }
-};
-template <class Type, std::size_t Size>
-struct Tensor<Type, Size> : public Array<Type, Size> {
-  using Element = Type;
 
- private:
-  using Base = Array<Element, Size>;
+  // template <Math::Type::ULong SizeB, class ElementB, class TypeB>
+  // requires Concepts::SubTensor<Tensor<SizeB, ElementB, TypeB>,
+  //                             typename Traits::Self>
+  // Tensor(const Tensor<SizeB, ElementB, TypeB>& other) {
+  //  *this = Construct(other);
+  //}
 
- public:
-  virtual ~Tensor() {}
-  using Base::Base;
-  template <std::size_t S = Size,
-            typename std::enable_if_t<(Size >= 1)>* = nullptr>
-  Type& x() {
+  // Tensor() {}
+  // template <class... Ts>
+  // Tensor(Ts... ts) : Base{ts...} {}
+
+  // template <class... Ts>
+  // requires requires() {
+  //  std::conjunction_v<std::is_convertible_v<Ts, typename
+  //  Traits::Element>...>; requires sizeof...(Ts) == Traits::Size();
+  //}
+  // Tensor(Ts... ts) : Base{ts...} {}
+
+  // Tensor(const Tensor&) = default;
+  // Tensor(Tensor&&) = default;
+  // Tensor& operator=(const Tensor&) = default;
+  // Tensor& operator=(Tensor&&) = default;
+
+  template <Math::Type::ULong S = Traits::Size()>
+  requires(S >= 1) typename Traits::Element& x() {
     return this->at(0);
   }
-  template <std::size_t S = Size,
-            typename std::enable_if_t<(Size >= 2)>* = nullptr>
-  Type& y() {
+  template <Math::Type::ULong S = Traits::Size()>
+  requires(S >= 2) typename Traits::Element& y() {
     return this->at(1);
   }
-  template <std::size_t S = Size,
-            typename std::enable_if_t<(Size >= 3)>* = nullptr>
-  Type& z() {
+  template <Math::Type::ULong S = Traits::Size()>
+  requires(S >= 3) typename Traits::Element& z() {
     return this->at(2);
   }
+  template <Math::Type::ULong S = Traits::Size()>
+  requires(S >= 1) const typename Traits::Element& x() const {
+    return this->at(0);
+  }
+  template <Math::Type::ULong S = Traits::Size()>
+  requires(S >= 2) const typename Traits::Element& y() const {
+    return this->at(1);
+  }
+  template <Math::Type::ULong S = Traits::Size()>
+  requires(S >= 3) const typename Traits::Element& z() const {
+    return this->at(2);
+  }
+  Tensor& operator+=(const typename Traits::Type& rhs) {
+    for (Math::Type::ULong i = 0; i < Traits::Size(); ++i) this->at(i) += rhs;
+    return *this;
+  }
+  Tensor& operator+=(const Tensor& rhs) {
+    for (Math::Type::ULong i = 0; i < Traits::Size(); ++i) this->at(i) += rhs[i];
+    return *this;
+  }
+  template <class T = Tensor>
+  requires std::derived_from<T, Tensor> friend T operator+(T lhs, const typename Traits::Type& rhs) {
+    return static_cast<T&>(lhs += rhs);
+  }
+  template <class T = Tensor>
+  requires std::derived_from<T, Tensor> friend T operator+(T lhs, const Tensor& rhs) {
+    return static_cast<T&>(lhs += rhs);
+  }
+
+  Tensor& operator-=(const typename Traits::Type& rhs) {
+    for (Math::Type::ULong i = 0; i < Traits::Size(); ++i) this->at(i) -= rhs;
+    return *this;
+  }
+  Tensor& operator-=(const Tensor& rhs) {
+    for (Math::Type::ULong i = 0; i < Traits::Size(); ++i) this->at(i) -= rhs[i];
+    return *this;
+  }
+
+  template <class T = Tensor>
+  requires std::derived_from<T, Tensor> friend T operator-(T lhs, const typename Traits::Type& rhs) {
+    return static_cast<T&>(lhs -= rhs);
+  }
+
+  template <class T = Tensor>
+  requires std::derived_from<T, Tensor> friend T operator-(T lhs, const Tensor& rhs) {
+    return static_cast<T&>(lhs -= rhs);
+  }
+
+  Tensor& operator*=(const typename Traits::Type& rhs) {
+    for (Math::Type::ULong i = 0; i < Traits::Size(); ++i) this->at(i) *= rhs;
+    return *this;
+  }
+  Tensor& operator*=(const Tensor& rhs) {
+    for (Math::Type::ULong i = 0; i < Traits::Size(); ++i) this->at(i) *= rhs[i];
+    return *this;
+  }
+
+  template <class T = Tensor>
+  requires std::derived_from<T, Tensor> friend T operator*(T lhs, const typename Traits::Type& rhs) {
+    return static_cast<T&>(lhs *= rhs);
+  }
+
+  template <class T = Tensor>
+  requires std::derived_from<T, Tensor> friend T operator*(T lhs, const Tensor& rhs) {
+    return static_cast<T&>(lhs *= rhs);
+  }
+
+  Tensor& operator/=(const typename Traits::Type& rhs) {
+    for (Math::Type::ULong i = 0; i < Traits::Size(); ++i) this->at(i) /= rhs;
+    return *this;
+  }
+  Tensor& operator/=(const Tensor& rhs) {
+    for (Math::Type::ULong i = 0; i < Traits::Size(); ++i) this->at(i) /= rhs[i];
+    return *this;
+  }
+
+  template <class T = Tensor>
+  requires std::derived_from<T, Tensor> friend T operator/(T lhs, const typename Traits::Type& rhs) {
+    return static_cast<T&>(lhs /= rhs);
+  }
+
+  template <class T = Tensor>
+  requires std::derived_from<T, Tensor> friend T operator/(T lhs, const Tensor& rhs) {
+    return static_cast<T&>(lhs /= rhs);
+  }
+  Tensor operator-() const { return *this * static_cast<typename Traits::Type>(-1); }
+  friend std::ostream& operator<<(std::ostream& os, const Tensor& a) {
+    if (Traits::Size() == 0) return os << "[]";
+    os << '[';
+    for (Math::Type::ULong i = 0; i < Traits::Size() - 1; ++i) os << a[i] << ',';
+    return os << a[Traits::Size() - 1] << ']';
+  }
+  // Merge case: lhs convertible to rhs || not rhs convertible to lhs
+  template <Math::Type::ULong Size2, class Element2, class Type2>
+  requires(std::is_convertible_v<Tensor, Tensor<Size2, Element2, Type2>> || !std::is_convertible_v<Tensor<Size2, Element2, Type2>, Tensor>)
+      Tensor<Traits::Size() + Size2, Element2, Type2> Merge(const Tensor<Size2, Element2, Type2>& rhs) {
+    Tensor<Traits::Size() + Size2, Element2, Type2> ret{};
+    ret = *this;
+    for (Math::Type::ULong i = 0; i < Size2; ++i) ret[Traits::Size() + i] = rhs[i];
+    return ret;
+  }
+  // Merge case: not lhs convertible to rhs && rhs convertible to lhs
+  template <Math::Type::ULong Size2, class Element2, class Type2>
+  requires(!std::is_convertible_v<Tensor, Tensor<Size2, Element2, Type2>> && std::is_convertible_v<Tensor<Size2, Element2, Type2>, Tensor>)
+      Tensor<Traits::Size() + Size2, typename Traits::Element, typename Traits::Type> Merge(
+          const Tensor<Traits::Size(), typename Traits::Element, typename Traits::Type>& lhs, const Tensor<Size2, Element2, Type2>& rhs) {
+    Tensor<Traits::Size() + Size2, typename Traits::Element, typename Traits::Type> ret{};
+    ret = *this;
+    for (Math::Type::ULong i = 0; i < Size2; ++i) ret[Traits::Size() + i] = rhs[i];
+    return ret;
+  }
+
+  typename Traits::template Relative<-1> Minor(const Math::Type::ULong& index) {
+    typename Traits::template Relative<-1> ret{};
+    for (Math::Type::ULong i = 0; i < index; ++i) ret[i] = this->at(i);
+    for (Math::Type::ULong i = index + 1; i < Traits::Size(); ++i) ret[i - 1] = this->at(i);
+    return ret;
+  }
+  template <class... Indices>
+  requires(std::conjunction_v<std::is_same<Math::Type::ULong, Indices>...> && sizeof...(Indices) == Traits::Order())
+      typename Traits::template Relative<-1> Minor(const Math::Type::ULong& index, Indices... indices) {
+    typename Traits::template Relative<-1> ret{};
+    for (Math::Type::ULong i = 0; i < index; ++i) ret[i] = Minor(this->at(i), indices...);
+    for (Math::Type::ULong i = index + 1; i < Traits::Size(); ++i) ret[i - 1] = Minor(this->at(i), indices...);
+    return ret;
+  }
+
+  template <class T = typename Traits::Self>
+  requires Concepts::Matrix<T> Matrix<T::Traits::Element::Traits::Size(), Traits::Size(), typename T::Traits::Type> Transpose() {
+    Matrix<T::Traits::Element::Traits::Size(), T::Traits::Size(), typename T::Traits::Type> ret;
+    for (Math::Type::ULong i = 0; i < T::Traits::Size(); ++i) {
+      for (Math::Type::ULong j = 0; j < T::Traits::Element::Traits::Size(); ++j) {
+        ret[j][i] = (*this)[i][j];
+      }
+    }
+    return ret;
+  }
+  template <class T = typename Traits::Self>
+  requires Concepts::SquareMatrix<T> typename T::Traits::Type Trace() {
+    typename T::Traits::Type ret{0};
+    for (Math::Type::ULong i = 0; i < T::Traits::Size(); ++i) {
+      ret += this->at(i).at(i);
+    }
+    return ret;
+  }
+  template <class T = typename Traits::Self>
+  requires Concepts::SquareMatrix<T> typename T::Traits::Type RevTrace() {
+    typename T::Traits::Type ret{0};
+    for (Math::Type::ULong i = 0; i < T::Traits::Size(); ++i) {
+      ret += (*this)[i][T::Traits::Size() - i - 1];
+    }
+    return ret;
+  }
+  template <Math::Type::ULong S, class T = typename Traits::Self>
+  requires Concepts::SquareMatrix<T> Matrix<T::Traits::Size(), S, typename T::Traits::Type> operator*(
+      const Matrix<T::Traits::Element::Traits::Size(), S, typename T::Traits::Type>& rhs) {
+    Matrix<T::Traits::Size(), S, typename T::Traits::Type> ret{};
+    Matrix<S, T::Traits::Element::Traits::Size(), typename T::Traits::Type> trhs{Transpose(rhs)};
+    for (Math::Type::ULong i = 0; i < T::Traits::Size(); ++i) {
+      for (Math::Type::ULong j = 0; j < S; ++j) {
+        ret[i][j] = this->DotProduct(trhs[j]);
+      }
+    }
+    return ret;
+  }
+
+  // Generalized Outer Product
+  template <Math::Type::ULong S, class T = typename Traits::Self>
+  requires Concepts::Vector<T> Matrix<T::Traits::Size(), S, typename T::Traits::Type> TensorProduct(const Vector<S, typename T::Traits::Type>& rhs) {
+    return Transpose() * Matrix<1, S, typename T::Traits::Type>(rhs);
+  }
+  // Exterior/Wedge Product - generalized Cross Product
+  template <Math::Type::ULong M, class T = typename Traits::Self>
+  requires Concepts::Vector<T> Matrix<T::Traits::Size(), M, typename T::Traits::Type> ExteriorProduct(
+      const Vector<M, typename T::Traits::Type>& rhs) {
+    return TensorProduct(rhs) - rhs.TensorProduct(*this);
+  }
+  // Inner Product - generalized Dot Product
+  template <class T = typename Traits::Self>
+  requires Concepts::Vector<T> typename T::Traits::Type InnerProduct(const Vector<T::Traits::Size(), typename T::Traits::Type>& rhs) {
+    return Trace(TensorProduct(rhs));
+  }
+  template <class T = typename Traits::Self>
+  requires Concepts::SquareMatrix<T> typename T::Traits::Type Determinant() {
+    typename T::Traits::Type ret{};
+    std::array<typename T::Traits::template Relative<-1>, T::Traits::Size()> minors{Minors(0)};
+    for (Math::Type::ULong i = 0; i < T::Traits::Size(); ++i) ret += (minors[i]) * (*this)[0][i] * (i % 2 == 1 ? -1 : 1).Determinant();
+    return ret;
+  }
+  template <class T = typename Traits::Self>
+  requires(Concepts::SquareMatrix<T> && (T::Traits::Size() == 2)) typename T::Traits::Type Determinant() {
+    return (*this)[0][0] * (*this)[1][1] - (*this)[0][1] * (*this)[1][0];
+  }
+  template <class T = typename Traits::Self>
+  requires(Concepts::SquareMatrix<T> && (T::Traits::Size() == 1)) typename Traits::Type Determinant() {
+    return (*this)[0][0];
+  }
+  template <class T = typename Traits::Self>
+  requires Concepts::Matrix<T>
+      std::array<std::array<typename T::Traits::template Relative<-1>, T::Traits::Element::Traits::Size()>, T::Traits::Size()> Minors() {
+    std::array<std::array<typename T::Traits::template Relative<-1>, T::Traits::Element::Traits::Size()>, T::Traits::Size()> ret;
+    for (Math::Type::ULong i = 0; i < T::Traits::Size(); ++i) ret[i] = Minors(i);
+    return ret;
+  }
+  template <class T = typename Traits::Self>
+  requires Concepts::Matrix<T> std::array<typename T::Traits::template Relative<-1>, T::Traits::Element::Traits::Size()> Minors(
+      const Math::Type::ULong& index) {
+    std::array<typename T::Traits::template Relative<-1>, T::Traits::Element::Traits::Size()> ret;
+    for (Math::Type::ULong i = 0; i < T::Traits::Element::Traits::Size(); ++i) ret[i] = Minor(index, i);
+    return ret;
+  }
+  template <class T = typename Traits::Self>
+      requires Concepts::Matrix<T> &&
+      (T::Traits::Size() ==
+       T::Traits::Element::Traits::Size() - 1) Vector<T::Traits::Element::Traits::Size(), typename T::Traits::Type> OrthogonalVector() {
+    std::array<
+        typename Matrix<T::Traits::Element::Traits::Size(), T::Traits::Element::Traits::Size(), T::Traits::Size()>::Traits::template Relative<-1>,
+        T::Traits::Element::Traits::Size()>
+        arr{Minors(static_cast<Matrix<T::Traits::Element::Traits::Size(), T::Traits::Element::Traits::Size(), T::Traits::Size()>>(*this),
+                   T::Traits::Element::Traits::Size() - 1)};
+    Vector<T::Traits::Element::Traits::Size(), typename T::Traits::Type> ret;
+    for (Math::Type::ULong i = 0; i < T::Traits::Element::Traits::Size(); ++i) {
+      ret[i] = Determinant(arr[i]);
+      if (T::Traits::Element::Traits::Size() % 2 == 0) {
+        ret[i] *= (i % 2 == 1 ? 1 : -1);
+      }
+    }
+    return ret;
+  }
+  // Vector
+  template <class T = typename Traits::Self>
+  requires Concepts::Vector<T> typename T::Traits::Type DotProduct(const Tensor& rhs) {
+    typename T::Traits::Type ret{0};
+    for (Math::Type::ULong i = 0; i < T::Traits::Size(); ++i) {
+      ret += this->at(i) * rhs[i];
+    }
+    return ret;
+  }
+  template <class T = typename Traits::Self>
+  requires Concepts::Vector<T> Matrix<T::Traits::Size(), 1, typename T::Traits::Type> Transpose() {
+    return Transpose(Matrix<1, T::Traits::Size(), typename T::Traits::Type>(*this));
+  }
+  template <class T = typename Traits::Self>
+  requires Concepts::Vector<T> Tensor Normalize() {
+    typename T::Traits::Type sum{0};
+    for (Math::Type::ULong i = 0; i < T::Traits::Size(); ++i) {
+      sum += std::pow(this->at(i), 2);
+    }
+    return *this / std::sqrt(sum);
+  }
+  template <class T = typename Traits::Self>
+  requires(Concepts::Vector<T>&& T::Traits::Size() == 3) Tensor CrossProduct(const Tensor& rhs) {
+    Matrix<T::Traits::Size(), T::Traits::Size(), typename T::Traits::Type> m{this->ExteriorProduct(rhs)};
+    return Tensor{m[1][2], m[2][0], m[0][1]};
+  }
+  void Scale(const typename Traits::Type& rhs) { *this *= rhs; }
+  void Scale(const Tensor& rhs) {
+    for (Math::Type::ULong i = 0; i < Traits::Size(); ++i) this->at(i) *= rhs[i];
+  }
+  template <Math::Type::ULong Size2, class Element2, class Type2>
+  requires(Concepts::SubTensor<Tensor<Size2, Element2, Type2>, typename Traits::Self>) void Scale(const Tensor<Size2, Element2, Type2>& rhs) {
+    for (auto& it : *this) Scale(it, rhs);
+  }
+  void Translate(const typename Traits::Type& rhs) { *this += rhs; }
+  void Translate(const Tensor& rhs) {
+    for (Math::Type::ULong i = 0; i < Traits::Size(); ++i) this->at(i) += rhs[i];
+  }
+  template <Math::Type::ULong Size2, class Element2, class Type2>
+  requires(Concepts::SubTensor<Tensor<Size2, Element2, Type2>, typename Traits::Self>) void Translate(const Tensor<Size2, Element2, Type2>& rhs) {
+    for (auto& it : *this) Translate(it, rhs);
+  }
+
+  template <class T = typename Traits::Self>
+  requires Concepts::Vector<T> typename T::Traits::Type Magnitude() {
+    typename T::Traits::Type sum = 0;
+    for (auto& v : *this) sum += std::pow(v, 2);
+    return std::sqrt(sum);
+  }
+  template <class T = typename Traits::Self>
+  requires Concepts::Vector<T> Tensor UnitVector() {
+    return *this / this->Magnitude();
+  }
+  typename Traits::Element Sum() const {
+    typename Traits::Element sum = 0;
+    for (const auto& v : *this) sum += v;
+    return sum;
+  }
+  template <class T = typename Traits::Self>
+  requires !Concepts::Vector<T> Tensor Transform(
+      const Tensor& rhs, std::function<typename T::Traits::Type(const typename T::Traits::Type&, const typename T::Traits::Type&)> op) {
+    Tensor ret;
+    for (Math::Type::ULong i = 0; i < T::Traits::Size(); ++i) ret[i] = this->Transform(rhs[i], op);
+    return ret;
+  }
+  template <class T = typename Traits::Self>
+  requires Concepts::Vector<T> Tensor
+  Transform(const Tensor& rhs, std::function<typename T::Traits::Type(const typename T::Traits::Type&, const typename T::Traits::Type&)> op) {
+    Tensor ret;
+    std::transform(this->begin(), this->end(), rhs.begin(), ret.begin(), op);
+    return ret;
+  }
+  Tensor Mutliply(const Tensor& rhs) { return this->Transform(rhs, std::multiplies); }
 };
-// template <class Type, std::size_t Size, std::size_t... TensorSizes>
-// struct Tensor<Tensor<Type, TensorSizes...>, Size>
-//    : public Tensor<Type, TensorSizes..., Size> {
-//  using Tensor<Type, TensorSizes..., Size>;
-//  virtual ~Tensor() {}
-//};
-
-template <class Type, std::size_t N, std::size_t M>
-using Matrix = Tensor<Type, N, M>;
-template <class Type, std::size_t N>
-using Vector = Tensor<Type, N>;
-
-template <class Type, std::size_t Size, std::size_t... Sizes>
-Tensor<Type, Size, Sizes...>& operator+=(
-    Tensor<Type, Size, Sizes...>& lhs,
-    const Tensor<Type, Size, Sizes...>& rhs) {
-  for (std::size_t i = 0; i < Size; ++i) lhs[i] += rhs[i];
-  return lhs;
-}
-template <class Type, std::size_t... Sizes>
-Tensor<Type, Sizes...>& operator+(Tensor<Type, Sizes...> lhs,
-                                  const Tensor<Type, Sizes...>& rhs) {
-  return lhs += rhs;
-}
-
-template <class Type, std::size_t Size, std::size_t... Sizes>
-Tensor<Type, Size, Sizes...>& operator-=(
-    Tensor<Type, Size, Sizes...>& lhs,
-    const Tensor<Type, Size, Sizes...>& rhs) {
-  for (std::size_t i = 0; i < Size; ++i) lhs[i] -= rhs[i];
-  return lhs;
-}
-template <class Type, std::size_t... Sizes>
-Tensor<Type, Sizes...>& operator-(Tensor<Type, Sizes...> lhs,
-                                  const Tensor<Type, Sizes...>& rhs) {
-  return lhs -= rhs;
-}
-
-template <class Type, std::size_t Size, std::size_t... Sizes>
-Tensor<Type, Size, Sizes...>& operator*=(Tensor<Type, Size, Sizes...>& lhs,
-                                         const Type& rhs) {
-  for (std::size_t i = 0; i < Size; ++i) lhs[i] *= rhs;
-  return lhs;
-}
-template <class Type, std::size_t... Sizes>
-Tensor<Type, Sizes...> operator*(Tensor<Type, Sizes...> lhs, const Type& rhs) {
-  return lhs *= rhs;
-}
-template <class Type, std::size_t... Sizes>
-Tensor<Type, Sizes...> operator*(const Type& lhs, Tensor<Type, Sizes...> rhs) {
-  return rhs *= lhs;
-}
-
-template <class Type, std::size_t Size, std::size_t... Sizes>
-Tensor<Type, Size, Sizes...>& operator/=(Tensor<Type, Size, Sizes...>& lhs,
-                                         const Type& rhs) {
-  for (std::size_t i = 0; i < Size; ++i) lhs[i] /= rhs;
-  return lhs;
-}
-template <class Type, std::size_t Size, std::size_t... Sizes>
-Tensor<Type, Size, Sizes...> operator/(Tensor<Type, Size, Sizes...> lhs,
-                                       const Type& rhs) {
-  return lhs /= rhs;
-}
-template <class Type, std::size_t... Sizes>
-Tensor<Type, Sizes...> operator/(const Type& lhs, Tensor<Type, Sizes...> rhs) {
-  return rhs /= lhs;
-}
-
-template <class Type, std::size_t... Sizes>
-Tensor<Type, Sizes...> operator-(Tensor<Type, Sizes...> a) {
-  return a *= -1;
-}
-template <class Type, std::size_t Size, std::size_t... Sizes>
-std::ostream& operator<<(std::ostream& os,
-                         const Tensor<Type, Size, Sizes...>& a) {
-  if (Size == 0) return os << "[]";
-  os << '[';
-  for (std::size_t i = 0; i < Size - 1; ++i) os << a[i] << ',';
-  return os << a[Size - 1] << ']';
-}
-
-template <class Type, std::size_t... Sizes>
-constexpr std::size_t Order(const Tensor<Type, Sizes...>& a) {
-  return sizeof...(Sizes);
-}
-template <class Type, std::size_t S, std::size_t... Ss>
-constexpr std::size_t Size(const Tensor<Type, S, Ss...>& a) {
-  return S;
-}
-template <std::size_t Start, std::size_t N, class Type, std::size_t Size,
-          typename std::enable_if_t<(((Start + N) <= Size), N > 0)>* = nullptr>
-Array<Type, N> Sub(const Array<Type, Size>& a) {
-  Array<Type, N> ret{};
-  for (std::size_t i = 0; i < N; ++i) ret[i] = a[Start + i];
-  return ret;
-}
-template <std::size_t Start, class Type, std::size_t Size>
-Array<Type, Size - Start> Sub(const Array<Type, Size>& a) {
-  return Sub<Start, Size - Start, Type, Size>(a);
-}
-
-// Merge case: lhs convertible to rhs || not rhs convertible to lhs
-template <class Type, std::size_t Size1, std::size_t Size2,
-          std::size_t... Sizes1, std::size_t... Sizes2,
-          typename std::enable_if_t<
-              (std::is_convertible_v<Tensor<Type, Sizes1...>,
-                                     Tensor<Type, Sizes2...>> ||
-               !std::is_convertible_v<Tensor<Type, Sizes2...>,
-                                      Tensor<Type, Sizes1...>>)>* = nullptr>
-Tensor<Type, Size1 + Size2, Sizes2...> Merge(
-    const Tensor<Type, Size1, Sizes1...>& lhs,
-    const Tensor<Type, Size2, Sizes2...>& rhs) {
-  Tensor<Type, Size1 + Size2, Sizes2...> ret{};
-  ret = lhs;
-  for (std::size_t i = 0; i < Size2; ++i) ret[Size1 + i] = rhs[i];
-  return ret;
-}
-// Merge case: not lhs convertible to rhs && rhs convertible to lhs
-template <class Type, std::size_t Size1, std::size_t Size2,
-          std::size_t... Sizes1, std::size_t... Sizes2,
-          typename std::enable_if_t<
-              (!std::is_convertible_v<Tensor<Type, Sizes1...>,
-                                      Tensor<Type, Sizes2...>> &&
-               std::is_convertible_v<Tensor<Type, Sizes2...>,
-                                     Tensor<Type, Sizes1...>>)>* = nullptr>
-Tensor<Type, Size1 + Size2, Sizes1...> Merge(
-    const Tensor<Type, Size1, Sizes1...>& lhs,
-    const Tensor<Type, Size2, Sizes2...>& rhs) {
-  Tensor<Type, Size1 + Size2, Sizes1...> ret{};
-  ret = lhs;
-  for (std::size_t i = 0; i < Size2; ++i) ret[Size1 + i] = rhs[i];
-  return ret;
-}
-template <class Type, std::size_t Size
-          // , typename std::enable_if_t
-          // <(
-          //     Index>0
-          //     && Index < Size-1
-          // )>* = nullptr
-          >
-Tensor<Type, Size - 1> Minor(const Tensor<Type, Size>& a,
-                             const std::size_t& index) {
-  Tensor<Type, Size - 1> ret{};
-  for (std::size_t i = 0; i < index; ++i) ret[i] = a[i];
-  for (std::size_t i = index + 1; i < Size; ++i) ret[i - 1] = a[i];
-  return ret;
-}
-template <class... Indices, class Type, std::size_t Size, std::size_t... Sizes,
-          typename std::enable_if_t<
-              (std::conjunction_v<std::is_same<std::size_t, Indices>...> &&
-               sizeof...(Indices) == sizeof...(Sizes))>* = nullptr>
-Tensor<Type, Size - 1, (Sizes - 1)...> Minor(
-    const Tensor<Type, Size, Sizes...>& a, const std::size_t& index,
-    Indices... indices) {
-  Tensor<Type, Size - 1, (Sizes - 1)...> ret{};
-  for (std::size_t i = 0; i < index; ++i) ret[i] = Minor(a[i], indices...);
-  for (std::size_t i = index + 1; i < Size; ++i)
-    ret[i - 1] = Minor(a[i], indices...);
-  return ret;
-}
-template <class Type, std::size_t N>
-Tensor<Type, N> Transpose(const Tensor<Type, N>& a) {
-  return a;
-}
-template <class Type, std::size_t N, std::size_t M>
-Tensor<Type, M, N> Transpose(const Tensor<Type, N, M>& a) {
-  Tensor<Type, M, N> ret;
-  for (std::size_t i = 0; i < N; ++i) {
-    for (std::size_t j = 0; j < M; ++j) {
-      ret[j][i] = a[i][j];
-    }
-  }
-  return ret;
-}
-template <class Type, std::size_t N>
-Type Trace(const Tensor<Type, N, N>& matrix) {
-  Type ret{0};
-  for (std::size_t i = 0; i < N; ++i) {
-    ret += matrix[i][i];
-  }
-  return ret;
-}
-template <class Type, std::size_t N>
-Type RevTrace(const Tensor<Type, N, N>& matrix) {
-  Type ret{0};
-  for (std::size_t i = 0; i < N; ++i) {
-    ret += matrix[i][N - i - 1];
-  }
-  return ret;
-}
-template <class Type, std::size_t N, std::size_t M, std::size_t U>
-Matrix<Type, N, U> operator*(const Matrix<Type, N, M>& lhs,
-                             const Matrix<Type, M, U>& rhs) {
-  Matrix<Type, N, U> ret{};
-  Matrix<Type, U, M> trhs{Transpose(rhs)};
-  for (std::size_t i = 0; i < N; ++i) {
-    for (std::size_t j = 0; j < U; ++j) {
-      ret[i][j] = DotProduct(lhs[i], trhs[j]);
-    }
-  }
-  return ret;
-}
-// Matrix
-// Generalized Outer Product
-template <class Type, std::size_t N, std::size_t M>
-Matrix<Type, N, M> TensorProduct(const Vector<Type, N>& lhs,
-                                 const Vector<Type, M> rhs) {
-  return Transpose(lhs) * Matrix<Type, 1, M>(rhs);
-}
-// Exterior/Wedge Product - generalized Cross Product
-template <class Type, std::size_t N, std::size_t M>
-Matrix<Type, N, M> ExteriorProduct(const Vector<Type, N>& lhs,
-                                   const Vector<Type, M> rhs) {
-  return TensorProduct(lhs, rhs) - TensorProduct(rhs, lhs);
-}
-// Inner Product - generalized Dot Product
-template <class Type, std::size_t N>
-Type InnerProduct(const Vector<Type, N>& lhs, const Vector<Type, N> rhs) {
-  return Trace(TensorProduct(lhs, rhs));
-}
-template <class Type, std::size_t N>
-Type Determinant(const Matrix<Type, N, N>& matrix) {
-  Type ret{};
-  std::array<Matrix<Type, N - 1, N - 1>, N> minors{Minors(matrix, 0)};
-  for (std::size_t i = 0; i < N; ++i)
-    ret += Determinant(minors[i]) * matrix[0][i] * (i % 2 == 1 ? -1 : 1);
-  return ret;
-}
-template <class Type>
-Type Determinant(const Matrix<Type, 2, 2>& matrix) {
-  return matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
-}
-template <class Type>
-Type Determinant(const Matrix<Type, 1, 1>& matrix) {
-  return matrix[0][0];
-}
-
-template <class Type, std::size_t N, std::size_t M>
-std::array<std::array<Matrix<Type, N - 1, M - 1>, M>, N> Minors(
-    const Matrix<Type, N, M>& matrix) {
-  std::array<std::array<Matrix<Type, N - 1, M - 1>, M>, N> ret;
-  for (std::size_t i = 0; i < N; ++i) ret[i] = Minors(matrix, i);
-  return ret;
-}
-template <class Type, std::size_t N, std::size_t M>
-std::array<Matrix<Type, N - 1, M - 1>, M> Minors(
-    const Matrix<Type, N, M>& matrix, const std::size_t& index) {
-  std::array<Matrix<Type, N - 1, M - 1>, M> ret;
-  for (std::size_t i = 0; i < M; ++i) ret[i] = Minor(matrix, index, i);
-  return ret;
-}
-template <class Type, std::size_t N>
-Vector<Type, N> OrthogonalVector(const Matrix<Type, N - 1, N>& matrix) {
-  std::array<Matrix<Type, N - 1, N - 1>, N> arr{
-      Minors(static_cast<Matrix<Type, N, N>>(matrix), N - 1)};
-  Vector<Type, N> ret;
-  for (std::size_t i = 0; i < N; ++i) {
-    ret[i] = Determinant(arr[i]);
-    if (N % 2 == 0) {
-      ret[i] *= (i % 2 == 1 ? 1 : -1);
-    }
-  }
-  return ret;
-}
-// Vector
-template <class Type, std::size_t N>
-Type DotProduct(const Vector<Type, N>& lhs, const Vector<Type, N>& rhs) {
-  Type ret{0};
-  for (std::size_t i = 0; i < N; ++i) {
-    ret += lhs[i] * rhs[i];
-  }
-  return ret;
-}
-template <class Type, std::size_t N>
-Matrix<Type, N, 1> Transpose(const Vector<Type, N>& a) {
-  return Transpose(Matrix<Type, 1, N>(a));
-}
-template <class Type, std::size_t N>
-Vector<Type, N> Normalize(const Vector<Type, N>& a) {
-  Type sum{0};
-  for (std::size_t i = 0; i < N; ++i) {
-    sum += std::pow(a[i], 2);
-  }
-  return a / std::sqrt(sum);
-}
-template <class Type, std::size_t N,
-          typename std::enable_if_t<(N == 3)>* = nullptr>
-Vector<Type, N> CrossProduct(const Vector<Type, N>& lhs,
-                             const Vector<Type, N>& rhs) {
-  Matrix<Type, N, N> m{ExteriorProduct(lhs, rhs)};
-  return Vector<Type, N>{m[1][2], m[2][0], m[0][1]};
-}
-template <class Type, std::size_t N,
-          typename std::enable_if_t<(N == 3)>* = nullptr>
-Matrix<Type, N + 1, N + 1> TranslationMatrix(Type Tx, Type Ty, Type Tz) {
-  return Matrix<Type, N + 1, N + 1>{
-      {1, 0, 0, Tx}, {0, 1, 0, Ty}, {0, 0, 1, Tz}, {0, 0, 0, 1}};
-}
-template <class Type, std::size_t N,
-          typename std::enable_if_t<(N == 3)>* = nullptr>
-Matrix<Type, N + 1, N + 1> RotationMatrix(Type Rx, Type Ry, Type Rz) {
-  return Matrix<Type, N + 1, N + 1>{{1, 0, 0, 0},
-                                    {0, std::cos(Rx), -std::sin(Rx), 0},
-                                    {0, std::sin(Rx), std::cos(Rx), 0},
-                                    {0, 0, 0, 1}} *
-         Matrix<Type, N + 1, N + 1>{{std::cos(Ry), 0, std::sin(Ry), 0},
-                                    {0, 1, 0, 0},
-                                    {-std::sin(Ry), 0, std::cos(Ry), 0},
-                                    {0, 0, 0, 1}} *
-         Matrix<Type, N + 1, N + 1>{{std::cos(Rz), -std::sin(Rz), 0, 0},
-                                    {std::sin(Rz), std::cos(Rz), 0, 0},
-                                    {0, 0, 1, 0},
-                                    {0, 0, 0, 1}};
-}
-// template <class Type, std::size_t Size>
-// void Scale(Tensor<Type, Size>& tensor, const Type& factor) {
-//  for (auto& ele : tensor) ele *= factor;
-//}
-// template <class Type, std::size_t Size, std::size_t... Sizes>
-// void Scale(Tensor<Type, Size, Sizes...>& tensor, const Type& factor) {
-//  for (auto& ele : tensor) Scale(ele);
-//}
-template <class Type, std::size_t Size>
-void Scale(Tensor<Type, Size>& lhs, const Tensor<Type, Size>& rhs) {
-  for (std::size_t i = 0; i < Size; ++i) lhs[i] *= rhs[i];
-}
-template <class Type, std::size_t Size, std::size_t... Sizes>
-void Scale(Tensor<Type, Size, Sizes...>& lhs,
-           const Tensor<Type, Size, Sizes...>& rhs) {
-  for (std::size_t i = 0; i < Size; ++i) Scale(lhs[i], rhs[i]);
-}
-// template <class Type, std::size_t ASize, std::size_t BSize,
-//          std::size_t... BSizes>
-// void Scale(Tensor<Type, ASize, BSize, BSizes...>& lhs,
-//           const Tensor<Type, BSize, BSizes...>& rhs) {
-//  for (auto& it : lhs) Scale(it, rhs);
-//}
-// template <class Type, std::size_t ASize, std::size_t BSize,
-//          std::size_t... ASizes, std::size_t... BSizes>
-// void Scale(Tensor<Type, ASize, ASizes..., BSize, BSizes...>& lhs,
-//           const Tensor<Type, BSize, BSizes...>& rhs) {
-//  for (auto& it : lhs) Scale(it, rhs);
-//}
-template <class Type, std::size_t... ASizes, std::size_t... BSizes>
-void Scale(Tensor<Type, ASizes..., BSizes...>& lhs,
-           const Tensor<Type, BSizes...>& rhs) {
-  for (auto& it : lhs) Scale(it, rhs);
-}
-
-template <class Type, std::size_t Size>
-void Translate(Tensor<Type, Size>& tensor, const Type& factor) {
-  for (auto& ele : tensor) ele += factor;
-}
-template <class Type, std::size_t Size, std::size_t... Sizes>
-void Translate(Tensor<Type, Size, Sizes...>& tensor, const Type& factor) {
-  for (auto& ele : tensor) Translate(ele);
-}
-template <class Type, std::size_t ASize, std::size_t... ASizes,
-          std::size_t... BSizes>
-void Translate(Tensor<Type, ASize, ASizes..., BSizes...>& lhs,
-               const Tensor<Type, BSizes...>& rhs) {
-  for (std::size_t i = 0; i < ASize; ++i) Translate(lhs[i], rhs[i]);
-}
-
-template <class Type, std::size_t N,
-          typename std::enable_if_t<(N == 3)>* = nullptr>
-Matrix<Type, N + 1, N + 1> ScaleMatrix(Type Sx, Type Sy, Type Sz) {
-  return Matrix<Type, N + 1, N + 1>{
-      {Sx, 0, 0, 0}, {0, Sy, 0, 0}, {0, 0, Sz, 0}, {0, 0, 0, 1}};
-}
-template <class Type, std::size_t N,
-          typename std::enable_if_t<(N == 3)>* = nullptr>
-Matrix<Type, N + 1, N + 1> ModelMatrix(Type Tx, Type Ty, Type Tz, Type Rx,
-                                       Type Ry, Type Rz, Type Sx, Type Sy,
-                                       Type Sz) {
-  return TranslationMatrix<N>() * RotationMatrix<N>() * ScaleMatrix<N>();
-}
-template <class Type, std::size_t N,
-          typename std::enable_if_t<(N == 3)>* = nullptr>
-Matrix<Type, N + 1, N + 1> ViewMatrix(Vector<Type, N> position,
-                                      Vector<Type, N> target,
-                                      Vector<Type, N> up) {
-  Vector<Type, 3> view_direction{Normalize(position - target)};
-  Vector<Type, 3> view_right{Normalize(CrossProduct(up, view_direction))};
-  Vector<Type, 3> view_up{CrossProduct(view_direction, view_right)};
-
-  return Matrix<Type, N + 1, N + 1>{
-             {view_right[0], view_right[1], view_right[2], 0},
-             {view_up[0], view_up[1], view_up[2], 0},
-             {view_direction[0], view_direction[1], view_direction[2], 0},
-             {0, 0, 0, 1}} *
-         Matrix<Type, N + 1, N + 1>{{1, 0, 0, -position[0]},
-                                    {0, 1, 0, -position[1]},
-                                    {0, 0, 1, -position[2]},
-                                    {0, 0, 0, 1}};
-}
-template <class Type, std::size_t N,
-          typename std::enable_if_t<(N == 3)>* = nullptr>
-Matrix<Type, N + 1, N + 1> OrthographicMatrix(Type near_val, Type far_val,
-                                              Type aspect, Type fov) {
-  Type top = near_val *
-             std::tan((boost::math::constants::pi<double>() / 180) * fov / 2);
-  Type bottom = -top;
-  Type right = top * aspect;
-  Type left = -right;
-
-  return Matrix<Type, N + 1, N + 1>{
-      {1 / (right - left), 0, 0, -((right + left) / (right - left))},
-      {0, 2 / (top - bottom), 0, -((top + bottom) / (top - bottom))},
-      {0, 0, -(2 / (far_val - near_val)),
-       -((far_val + near_val) / (far_val - near_val))},
-      {0, 0, 0, 1}};
-}
-template <class Type, std::size_t N,
-          typename std::enable_if_t<(N == 3)>* = nullptr>
-Matrix<Type, N + 1, N + 1> PerspectiveMatrix(Type near_val, Type far_val,
-                                             Type aspect, Type fov) {
-  Type top = near_val *
-             std::tan((boost::math::constants::pi<double>() / 180) * fov / 2);
-  Type bottom = -top;
-  Type right = top * aspect;
-  Type left = -right;
-
-  return Matrix<Type, N + 1, N + 1>{
-      {(2 * near_val) / (right - left), 0, (right + left) / (right - left), 0},
-      {0, (2 * near_val) / (top - bottom), (top + bottom) / (top - bottom), 0},
-      {0, 0, -((far_val + near_val) / (far_val - near_val)),
-       -((2 * far_val * near_val) / (far_val - near_val))},
-      {0, 0, -1, 0}};
-}
-template <class Type, std::size_t N>
-Matrix<Type, N, N> IdentityMatrix() {
-  Matrix<Type, N, N> ret{};
-  for (std::size_t i = 0; i < N; ++i) {
-    ret[i][i] = 1;
-  }
-  return ret;
-}
-template <class Type, std::size_t N>
-Type Magnitude(const Vector<Type, N>& vector) {
-  Type sum = 0;
-  for (auto& v : vector) sum += std::pow(v, 2);
-  return std::sqrt(sum);
-}
-template <class Type, std::size_t N>
-Vector<Type, N> UnitVector(const Vector<Type, N>& vector) {
-  return vector / Magnitude(vector);
-}
-template <class Type, std::size_t N>
-Type Sum(const Vector<Type, N>& vector) {
-  Type sum = 0;
-  for (auto& v : vector) sum += v;
-}
-template <class Type, std::size_t... Sizes>
-Tensor<Type, Sizes...> Mutliply(const Tensor<Type, Sizes...>& lhs,
-                                const Tensor<Type, Sizes...>& rhs) {
-  return Transform(lhs, rhs, std::multiplies);
-}
-template <class Type, std::size_t Size, std::size_t... Sizes>
-Tensor<Type, Size, Sizes...> Transform(
-    const Tensor<Type, Size, Sizes...>& lhs,
-    const Tensor<Type, Size, Sizes...>& rhs,
-    std::function<Type(const Type&, const Type&)> op) {
-  Tensor<Type, Size, Sizes...> ret;
-  for (std::size_t i = 0; i < Size; ++i) ret[i] = Transform(lhs[i], rhs[i], op);
-  return ret;
-}
-template <class Type, std::size_t Size>
-Tensor<Type, Size> Transform(const Tensor<Type, Size>& lhs,
-                             const Tensor<Type, Size>& rhs,
-                             std::function<Type(const Type&, const Type&)> op) {
-  Tensor<Type, Size> ret;
-  std::transform(lhs.begin(), lhs.end(), rhs.begin(), ret.begin(), op);
-  return ret;
-}
 }  // namespace Tensor
 }  // namespace UD

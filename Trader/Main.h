@@ -12,11 +12,8 @@
 #include <wx/file.h>
 #include <wx/listbox.h>
 
-#include "boost/beast.hpp"
-#include "boost/json.hpp"
 #include "openssl/ssl.h"
 
-#include "boost/asio/ssl/stream.hpp"
 
 //#include "openssl/hmac.h"
 

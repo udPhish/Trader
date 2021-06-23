@@ -1,2 +1,3 @@
 BasedOnStyle: Google
 IncludeBlocks: Preserve
+ColumnLimit: 150

@@ -53,8 +53,8 @@ std::map<Candle, double, Candle::Compare::OpenTime> Plan::Assess(
   CandlePositionMap positions = Run(candles);
   std::map<Candle, double, Candle::Compare::OpenTime> ret;
   Position pos = Position::Short;
-  for (auto [it, entry] = std::pair{candles.begin(), candles.begin()}; it != candles.end();
-       ++it) {
+  auto entry = candles.begin();
+  for (auto it = candles.begin(); it != candles.end(); ++it) {
     if (pos == Position::Short) {
       if (positions.at(*it) == Position::Long) {
         entry = it;
@@ -62,7 +62,7 @@ std::map<Candle, double, Candle::Compare::OpenTime> Plan::Assess(
       }
     } else if (pos == Position::Long) {
       if (positions.at(*it) == Position::Short) {
-        ret[*entry] = (it->close - entry->close);
+        ret[*it] = (0.9*it->close - entry->close);
         pos = Position::Short;
       }
     }

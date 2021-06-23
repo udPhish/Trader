@@ -116,14 +116,14 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions);</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>C:\Users\Guy\dev\extern\wxwidgets\include\msvc;C:\Users\Guy\dev\extern\wxwidgets\include;C:\Users\Guy\dev\extern\boost_1_75_0;C:\Users\Guy\dev\extern\openssl\openssl\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Guy\dev\extern\wxwidgets\3.1.5\include\msvc;C:\Users\Guy\dev\extern\wxwidgets\3.1.5\include;C:\Users\Guy\dev\extern\boost_1_75_0;C:\Users\Guy\dev\extern\openssl\openssl\include;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Users\Guy\dev\extern\wxwidgets\lib\vc_x64_lib;C:\Users\Guy\dev\extern\openssl\openssl;C:\Users\Guy\dev\extern\boost_1_75_0\stage\lib;</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\Users\Guy\dev\extern\wxwidgets\3.1.5\lib\vc_x64_lib;C:\Users\Guy\dev\extern\openssl\openssl;C:\Users\Guy\dev\extern\boost_1_75_0\stage\lib;</AdditionalLibraryDirectories>
       <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;libcrypto_static.lib;libssl_static.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -154,12 +154,15 @@
     <ClInclude Include="Boost_Serialization_chrono.h" />
     <ClInclude Include="Candle.h" />
     <ClInclude Include="Colour.h" />
+    <ClInclude Include="Container.h" />
     <ClInclude Include="EntityCandle.h" />
     <ClInclude Include="Exchange.h" />
     <ClInclude Include="ExchangeView.h" />
+    <ClInclude Include="Iterator.h" />
     <ClInclude Include="Logger.h" />
     <ClInclude Include="Main.h" />
     <ClInclude Include="Market.h" />
+    <ClInclude Include="Math.h" />
     <ClInclude Include="OpenGLCanvas.h" />
     <ClInclude Include="OpenGLFunctions.h" />
     <ClInclude Include="PlanView.h" />
@@ -167,6 +170,7 @@
     <ClInclude Include="Strategies.h" />
     <ClInclude Include="Strategy.h" />
     <ClInclude Include="Tensor.h" />
+    <ClInclude Include="Traits.h" />
     <ClInclude Include="Util.h" />
     <ClInclude Include="World.h" />
   </ItemGroup>
@@ -176,12 +180,15 @@
     <ClCompile Include="Application.cpp" />
     <ClCompile Include="Candle.cpp" />
     <ClCompile Include="Colour.cpp" />
+    <ClCompile Include="Container.cpp" />
     <ClCompile Include="EntityCandle.cpp" />
     <ClCompile Include="Exchange.cpp" />
     <ClCompile Include="ExchangeView.cpp" />
+    <ClCompile Include="Iterator.cpp" />
     <ClCompile Include="Logger.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Market.cpp" />
+    <ClCompile Include="Math.cpp" />
     <ClCompile Include="OpenGLCanvas.cpp" />
     <ClCompile Include="OpenGLFunctions.cpp" />
     <ClCompile Include="PlanView.cpp" />
@@ -189,6 +196,7 @@
     <ClCompile Include="Strategies.cpp" />
     <ClCompile Include="Strategy.cpp" />
     <ClCompile Include="Tensor.cpp" />
+    <ClCompile Include="Traits.cpp" />
     <ClCompile Include="Util.cpp" />
     <ClCompile Include="World.cpp" />
   </ItemGroup>

@@ -11,14 +11,14 @@ namespace Colour {
 template <class Type = unsigned char,
           Type MaxValue = std::numeric_limits<Type>::max(),
           Type MinValue = std::numeric_limits<Type>::min()>
-struct Colour : public UD::Tensor::Vector<Type, 4> {
+struct Colour : public UD::Tensor::Vector<4, Type> {
   static_assert(!std::numeric_limits<Type>::is_signed,
                 "Type must not be signed");
   static_assert(std::numeric_limits<Type>::is_exact,
                 "Type must have an exact binary representation");
 
  private:
-  using Base = UD::Tensor::Vector<Type, 4>;
+  using Base = UD::Tensor::Vector<4, Type>;
 
  public:
   Colour() {}
@@ -56,13 +56,21 @@ struct Colour : public UD::Tensor::Vector<Type, 4> {
   static constexpr Type count_values() { return max_value() - min_value() + 1; }
 
   Type& red() { return this->at(0); }
+  const Type& red() const { return this->at(0); }
   Type& r() { return red(); }
+  const Type& r() const { return red(); }
   Type& green() { return this->at(1); }
+  const Type& green() const { return this->at(1); }
   Type& g() { return green(); }
+  const Type& g() const { return green(); }
   Type& blue() { return this->at(2); }
+  const Type& blue() const { return this->at(2); }
   Type& b() { return blue(); }
+  const Type& b() const { return blue(); }
   Type& alpha() { return this->at(3); }
+  const Type& alpha() const { return this->at(3); }
   Type& a() { return alpha(); }
+  const Type& a() const { return alpha(); }
 };
 
 template <class Type = unsigned char,
