@@ -64,7 +64,11 @@ Main::Main()
       Logger::Log<Logger::Level::FatalError>("Exchange generation failed.");
     }
   }
-  m_exchange.AddAssets({"BTCUSDT", "ETHUSDT", "ETHBTC"});
+  if (m_exchange.markets.empty())
+  {
+    m_exchange.AddAssets({"BTCUSDT", "ETHUSDT", "ETHBTC"});
+    RequestUpdateExchangeNoRefresh(m_exchange);
+  }
   m_exchange_view = new ExchangeView(this, m_exchange);
 
   m_plan_view
@@ -241,10 +245,14 @@ void Main::RequestKlines()
 
   wxMessageBox(response.body());
 }
-void Main::RequestUpdateExchange(Exchange& exchange)
+void Main::RequestUpdateExchangeNoRefresh(Exchange& exchange)
 {
   APIBinance api;
   api.Update(exchange);
+}
+void Main::RequestUpdateExchange(Exchange& exchange)
+{
+  RequestUpdateExchangeNoRefresh(exchange);
   m_gl_canvas->Refresh();
   m_gl_canvas->Update();
 }

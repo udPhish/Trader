@@ -1,6 +1,5 @@
 #include "Strategy.h"
 
-
 Plan::Plan() : Plan(Default()) {}
 Plan::Plan(const Plan& other)
     : _entries{CloneEntries(other)}
@@ -202,6 +201,10 @@ auto Plan::Assess(const History& candles,
   auto entry_candle = static_cast<const Candle*>(nullptr);
   auto exit_candle  = static_cast<const Candle*>(nullptr);
   auto last_pos     = Position::Short;
+  if (ret.empty())
+  {
+    return {};
+  }
   ret[run.begin()->first] = 1.0;
   for (auto& [candle, position] : run)
   {
