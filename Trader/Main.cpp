@@ -251,10 +251,10 @@ void Main::RequestUpdateExchange(Exchange& exchange)
 auto Main::PlanList() -> std::vector<Plan>
 {
   auto strategies = std::vector<std::unique_ptr<StrategyBase>>{
-      CreateAllStrategyCombinations<
-          SimpleMovingAverage<32, Metric::Close>,
-          SimpleMovingAverage<8, Metric::Close>,
-                                    Identity<Metric::Close>>()};
+      CreateAllStrategyCombinations<SimpleMovingAverage<8, Metric::Close>,
+                                    Identity<Metric::Close>,
+                                    SimpleMovingAverage<8, Metric::Open>,
+                                    Identity<Metric::Open>>()};
   auto strategy_combinations = Combinations(strategies, 2);
 
   auto plans = std::vector<Plan>{};
@@ -266,8 +266,8 @@ auto Main::PlanList() -> std::vector<Plan>
     }
   }
   auto strategies2 = std::vector<std::unique_ptr<StrategyBase>>{
-      CreateAllStrategyCombinations<SimpleMovingAverage<16, Metric::Close>,
-                                    SimpleMovingAverage<8, Metric::Close>>()};
+      CreateAllStrategyCombinations<SimpleMovingAverage<8, Metric::Volume>,
+                                    Identity<Metric::Volume>>()};
   auto strategy_combinations2 = Combinations(strategies, 2);
 
   for (auto& entry_strategies : strategy_combinations2)

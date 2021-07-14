@@ -90,7 +90,7 @@ void PlanView::UpdateList()
     wxCriticalSectionLocker lock(m_critical_best_plans);
     for (auto& [key, value] : m_best_plans)
     {
-      m_list_plans->Append(value.Name());
+      m_list_plans->Insert(value.Name(),0);
     }
   }
   if (!m_list_plans->IsEmpty())
@@ -269,10 +269,10 @@ auto PlanView::Entry() -> wxThread::ExitCode
         assess_total = plan_node.mapped().AssessFinalTotal(m_candles);
         {
           wxCriticalSectionLocker lock(m_critical_best_plans);
-          if (assess_total < (--m_best_plans.end())->first)
+          if (assess_total > m_best_plans.begin()->first)
           {
             m_best_plans.insert({assess_total, plan_node.mapped()});
-            m_best_plans.erase(--m_best_plans.end());
+            m_best_plans.erase(m_best_plans.begin());
             should_notify = true;
           }
         }
