@@ -35,6 +35,10 @@ struct Array {
   typename Traits::UnderlyingContainer _container;
 
   virtual ~Array() {}
+  Array(const Array&)       = default;
+  Array(Array&&) noexcept = default;
+  auto operator=(const Array&) -> Array& = default;
+  auto operator=(Array&&) noexcept -> Array& = default;
 
   Array() : _container{} {}
   template <class... Ts>
@@ -89,7 +93,7 @@ struct Array {
     return underlying_container()[index];
   }
   template <class T = typename Traits::Element>
-      requires !std::is_fundamental_v<T> const typename Traits::Element &
+      requires (!std::is_fundamental_v<T>) const typename Traits::Element &
       operator[](std::size_t index) const {
     return underlying_container()[index];
   }

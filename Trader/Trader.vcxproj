@@ -78,6 +78,10 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
+    <EnableMicrosoftCodeAnalysis>true</EnableMicrosoftCodeAnalysis>
+    <EnableClangTidyCodeAnalysis>false</EnableClangTidyCodeAnalysis>
+    <ClangTidyChecks>bugprone-*,clang-analyzer-*,concurrency-*,cppcoreguidelines-*,hicpp-*,modernize-*,performance-*</ClangTidyChecks>
+    <CodeAnalysisRuleSet>..\..\..\..\Desktop\temp.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -153,11 +157,15 @@
     <ClInclude Include="Application.h" />
     <ClInclude Include="Boost_Serialization_chrono.h" />
     <ClInclude Include="Candle.h" />
+    <ClInclude Include="CandleView.h" />
+    <ClInclude Include="Class.h" />
     <ClInclude Include="Colour.h" />
     <ClInclude Include="Container.h" />
+    <ClInclude Include="date.h" />
     <ClInclude Include="EntityCandle.h" />
     <ClInclude Include="Exchange.h" />
     <ClInclude Include="ExchangeView.h" />
+    <ClInclude Include="Indicator.h" />
     <ClInclude Include="Iterator.h" />
     <ClInclude Include="Logger.h" />
     <ClInclude Include="Main.h" />
@@ -165,6 +173,7 @@
     <ClInclude Include="Math.h" />
     <ClInclude Include="OpenGLCanvas.h" />
     <ClInclude Include="OpenGLFunctions.h" />
+    <ClInclude Include="PlanStatsView.h" />
     <ClInclude Include="PlanView.h" />
     <ClInclude Include="SFINAE.h" />
     <ClInclude Include="Strategies.h" />
@@ -179,11 +188,14 @@
     <ClCompile Include="APIBinance.cpp" />
     <ClCompile Include="Application.cpp" />
     <ClCompile Include="Candle.cpp" />
+    <ClCompile Include="CandleView.cpp" />
+    <ClCompile Include="Class.cpp" />
     <ClCompile Include="Colour.cpp" />
     <ClCompile Include="Container.cpp" />
     <ClCompile Include="EntityCandle.cpp" />
     <ClCompile Include="Exchange.cpp" />
     <ClCompile Include="ExchangeView.cpp" />
+    <ClCompile Include="Indicator.cpp" />
     <ClCompile Include="Iterator.cpp" />
     <ClCompile Include="Logger.cpp" />
     <ClCompile Include="Main.cpp" />
@@ -191,6 +203,7 @@
     <ClCompile Include="Math.cpp" />
     <ClCompile Include="OpenGLCanvas.cpp" />
     <ClCompile Include="OpenGLFunctions.cpp" />
+    <ClCompile Include="PlanStatsView.cpp" />
     <ClCompile Include="PlanView.cpp" />
     <ClCompile Include="SFINAE.cpp" />
     <ClCompile Include="Strategies.cpp" />
@@ -199,6 +212,9 @@
     <ClCompile Include="Traits.cpp" />
     <ClCompile Include="Util.cpp" />
     <ClCompile Include="World.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ClassDiagram.cd" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

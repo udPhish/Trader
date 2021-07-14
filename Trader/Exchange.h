@@ -14,8 +14,8 @@
 struct Exchange {
   std::unordered_map<std::string, Market> markets;
 
-  void AddAsset(std::string asset);
-  void AddAssets(std::vector<std::string> assets);
+  void AddAsset(const std::string& asset);
+  void AddAssets(const std::vector<std::string>& assets);
 
   friend class boost::serialization::access;
   template <class Archive>

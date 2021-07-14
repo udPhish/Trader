@@ -5,9 +5,12 @@
 
 #include "Main.h"
 
-class Application: public wxApp {
+class Application : public wxApp
+{
  private:
   Main* m_main_frame = nullptr;
+
  public:
   virtual bool OnInit() wxOVERRIDE;
+  virtual void CleanUp() override;
 };

@@ -1,102 +1,262 @@
 #include "Strategy.h"
 
-Strategy::Strategy() {}
-Strategy::Strategy(std::string name, Function function)
-    : name{name}, function{function} {}
 
-Plan::Plan(std::vector<Strategy> entries, std::vector<Strategy> exits)
-    : entries{entries}, exits{exits} {}
-Plan::CandlePositionMap Plan::Run(History candles) const {
-  std::vector<CandlePositionMap> entry_results;
-  std::vector<CandlePositionMap> exit_results;
+Plan::Plan() : Plan(Default()) {}
+Plan::Plan(const Plan& other)
+    : _entries{CloneEntries(other)}
+    , _exits{CloneExits(other)}
+{
+}
+Plan::Plan(Plan&& other) noexcept
+    : _entries{std::move(other._entries)}
+    , _exits{std::move(other._exits)}
+{
+}
+auto Plan::operator=(const Plan& other)  //
+    -> Plan&
+{
+  _entries = CloneEntries(other);
+  _exits   = CloneExits(other);
+  return *this;
+}
+auto Plan::operator=(Plan&& other) noexcept  //
+    -> Plan&
+{
+  _entries = std::move(other._entries);
+  _exits   = std::move(other._exits);
+  return *this;
+}
+Plan::Plan(const std::vector<std::unique_ptr<StrategyBase>>& entries,
+           const std::vector<std::unique_ptr<StrategyBase>>& exits)
+    : _entries{CloneVector(entries)}
+    , _exits{CloneVector(exits)}
+{
+}
 
-  for (auto& entry : entries) entry_results.push_back(entry.function(candles));
-  for (auto& exit : exits) exit_results.push_back(exit.function(candles));
+auto Plan::entries()  //
+    -> std::vector<std::unique_ptr<StrategyBase>>&
+{
+  return _entries;
+}
+auto Plan::exits()  //
+    -> std::vector<std::unique_ptr<StrategyBase>>&
+{
+  return _exits;
+}
+auto Plan::entries() const  //
+    -> const std::vector<std::unique_ptr<StrategyBase>>&
+{
+  return _entries;
+}
+auto Plan::exits() const  //
+    -> const std::vector<std::unique_ptr<StrategyBase>>&
+{
+  return _exits;
+}
 
-  CandlePositionMap ret;
-  Position pos = Position::Short;
-  for (auto& candle : candles) {
-    if (pos == Position::Short) {
+auto Plan::CloneEntries(const Plan& other)  //
+    -> std::vector<std::unique_ptr<StrategyBase>>
+{
+  return CloneVector(other._entries);
+}
+auto Plan::CloneExits(const Plan& other)  //
+    -> std::vector<std::unique_ptr<StrategyBase>>
+{
+  return CloneVector(other._exits);
+}
+auto Plan::Name() const  //
+    -> std::string
+{
+  auto ret = std::string{"Plan{Enter{"};
+  if (!_entries.empty())
+  {
+    ret += _entries[0]->Name();
+    for (std::size_t i = 1; i < _entries.size(); ++i)
+    {
+      ret += "," + _entries[i]->Name();
+    }
+  }
+  ret += "},Exit{";
+  if (!_exits.empty())
+  {
+    ret += _exits[0]->Name();
+    for (std::size_t i = 1; i < _exits.size(); ++i)
+    {
+      ret += "," + _exits[i]->Name();
+    }
+  }
+  ret += "}}";
+  return ret;
+}
+auto Plan::CloneVector(
+    const std::vector<std::unique_ptr<StrategyBase>>& vec)  //
+    -> std::vector<std::unique_ptr<StrategyBase>>
+{
+  auto ret = std::vector<std::unique_ptr<StrategyBase>>{};
+  for (auto& v : vec)
+  {
+    ret.push_back(v->Clone());
+  }
+  return ret;
+}
+auto Plan::Default()  //
+    -> Plan
+{
+  auto entries = std::vector<std::unique_ptr<StrategyBase>>{};
+  auto exits   = std::vector<std::unique_ptr<StrategyBase>>{};
+  entries.push_back(
+      std::make_unique<
+          Strategy<Identity<Metric::Open>, Identity<Metric::Close>>>());
+  entries.push_back(
+      std::make_unique<
+          Strategy<Identity<Metric::Open>, Identity<Metric::Close>>>());
+  exits.push_back(std::make_unique<
+                  Strategy<Identity<Metric::Open>, Identity<Metric::Close>>>());
+  exits.push_back(std::make_unique<
+                  Strategy<Identity<Metric::Open>, Identity<Metric::Close>>>());
+  return Plan(entries, exits);
+}
+
+auto Plan::StrategiesRun(
+    const std::vector<std::unique_ptr<StrategyBase>>& strategies,
+    const History&                                    candles) const  //
+    -> std::vector<std::map<Candle, Position, Candle::Compare::OpenTime>>
+{
+  auto ret
+      = std::vector<std::map<Candle, Position, Candle::Compare::OpenTime>>{};
+  for (auto& s : strategies)
+  {
+    ret.push_back(s->Evaluate(candles));
+  }
+  return ret;
+}
+auto Plan::EntriesRun(const History& candles) const  //
+    -> std::vector<std::map<Candle, Position, Candle::Compare::OpenTime>>
+{
+  return StrategiesRun(_entries, candles);
+}
+auto Plan::ExitsRun(const History& candles) const  //
+    -> std::vector<std::map<Candle, Position, Candle::Compare::OpenTime>>
+{
+  return StrategiesRun(_exits, candles);
+}
+auto Plan::StrategiesRunJoin(
+    const std::vector<std::map<Candle, Position, Candle::Compare::OpenTime>>&
+        runs) const  //
+    -> std::map<Candle, Position, Candle::Compare::OpenTime>
+{
+  auto ret = std::map<Candle, Position, Candle::Compare::OpenTime>{};
+  for (auto& run : runs)
+  {
+    for (auto& [key, value] : run)
+    {
+      if (value == Position::Short)
+      {
+        ret[key] = Position::Short;
+        continue;
+      }
+      if (!ret.contains(key))
+      {
+        ret[key] = Position::Long;
+      }
+    }
+  }
+  return ret;
+}
+auto Plan::JoinEntriesExits(
+    const std::map<Candle, Position, Candle::Compare::OpenTime>& entries,
+    const std::map<Candle, Position, Candle::Compare::OpenTime>& exits)
+    const  //
+    -> std::map<Candle, Position, Candle::Compare::OpenTime>
+{
+  auto ret = std::map<Candle, Position, Candle::Compare::OpenTime>{};
+  auto pos = Position::Short;
+  for (auto& [key, value] : entries)
+  {
+    if (pos == Position::Short && value == Position::Long)
+    {
       pos = Position::Long;
-      for (auto& entry_result : entry_results) {
-        if (entry_result.at(candle) == Position::Short) {
-          pos = Position::Short;
-          break;
-        }
-      }
-    } else if (pos == Position::Long) {
-      pos = Position::Short;
-      for (auto& exit_result : exit_results) {
-        if (exit_result.at(candle) == Position::Long) {
-          pos = Position::Long;
-          break;
-        }
-      }
     }
-    ret[candle] = pos;
+    else if (pos == Position::Long && exits.contains(key)
+             && exits.at(key) == Position::Short)
+    {
+      pos = Position::Short;
+    }
+    ret[key] = pos;
   }
   return ret;
-}
-Plan::CandlePositionMap Plan::operator()(History candles) const {
-  return Run(candles);
-}
-std::string Plan::Name() const {
-  std::string n;
-  for (auto& entry : entries) n += entry.name;
-  n += "->";
-  for (auto& exit : exits) n += exit.name;
-  return n;
 }
 
-std::map<Candle, double, Candle::Compare::OpenTime> Plan::Assess(
-    History candles) const {
-  CandlePositionMap positions = Run(candles);
-  std::map<Candle, double, Candle::Compare::OpenTime> ret;
-  Position pos = Position::Short;
-  auto entry = candles.begin();
-  for (auto it = candles.begin(); it != candles.end(); ++it) {
-    if (pos == Position::Short) {
-      if (positions.at(*it) == Position::Long) {
-        entry = it;
-        pos = Position::Long;
-      }
-    } else if (pos == Position::Long) {
-      if (positions.at(*it) == Position::Short) {
-        ret[*it] = (0.9*it->close - entry->close);
-        pos = Position::Short;
-      }
+auto Plan::Run(const History& candles) const  //
+    -> std::map<Candle, Position, Candle::Compare::OpenTime>
+{
+  return JoinEntriesExits(StrategiesRunJoin(EntriesRun(candles)),
+                          StrategiesRunJoin(ExitsRun(candles)));
+}
+auto Plan::Assess(const History& candles,
+                  double         loss) const  //
+    -> std::map<Candle, double, Candle::Compare::OpenTime>
+{
+  auto ret          = std::map<Candle, double, Candle::Compare::OpenTime>{};
+  auto run          = Run(candles);
+  auto entry_candle = static_cast<const Candle*>(nullptr);
+  auto exit_candle  = static_cast<const Candle*>(nullptr);
+  auto last_pos     = Position::Short;
+  ret[run.begin()->first] = 1.0;
+  for (auto& [candle, position] : run)
+  {
+    if (last_pos == Position::Short && position == Position::Long)
+    {
+      last_pos     = Position::Long;
+      entry_candle = &candle;
+    }
+    else if (last_pos == Position::Long && position == Position::Short)
+    {
+      last_pos    = Position::Short;
+      exit_candle = &candle;
+      ret[candle] = exit_candle->close / entry_candle->close - loss;
     }
   }
   return ret;
 }
-double Plan::AssessTotal(History candles) const {
-  std::map<Candle, double, Candle::Compare::OpenTime> assessment =
-      Assess(candles);
-  double ret = 0;
-  for (auto& p : assessment) {
-    ret += p.second;
+auto Plan::AssessTotal(const History& candles,
+                       double         loss) const  //
+    -> std::map<Candle, double, Candle::Compare::OpenTime>
+{
+  auto assess = Assess(candles, loss);
+  auto ret    = std::map<Candle, double, Candle::Compare::OpenTime>{};
+  auto total  = 1.0;
+  for (auto& candle : candles)
+  {
+    if (assess.contains(candle))
+    {
+      total *= assess[candle];
+    }
+    ret[candle] = total;
   }
   return ret;
 }
-double Plan::AssessGain(History candles) const {
-  std::map<Candle, double, Candle::Compare::OpenTime> assessment =
-      Assess(candles);
-  double ret = 0;
-  for (auto& p : assessment) {
-    if (p.second > 0) {
-      ret += p.second;
-    }
+auto Plan::AssessFinalTotal(const History& candles,
+                            double         loss) const  //
+    -> double
+{
+  auto assessment = AssessTotal(candles);
+  if (assessment.empty())
+  {
+    return 0.0;
   }
-  return ret;
+  return assessment.rbegin()->second;
 }
-double Plan::AssessLoss(History candles) const {
-  std::map<Candle, double, Candle::Compare::OpenTime> assessment =
-      Assess(candles);
-  double ret = 0;
-  for (auto& p : assessment) {
-    if (p.second < 0) {
-      ret += p.second;
-    }
+auto Plan::AssessWithEntry(double         entry_value,
+                           const History& candles,
+                           double         loss) const  //
+    -> std::map<Candle, double, Candle::Compare::OpenTime>
+{
+  auto ret        = std::map<Candle, double, Candle::Compare::OpenTime>{};
+  auto assessment = AssessTotal(candles, loss);
+  for (auto& [key, value] : assessment)
+  {
+    ret[key] = value * entry_value;
   }
   return ret;
 }
