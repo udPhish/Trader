@@ -11,16 +11,13 @@
 #define GetGLProcAddress(name) (*glXGetProcAddress)((const GLubyte*)name)
 #endif
 
-void* GetGLFuncAddress(const char* fname) {
+auto GetGLFuncAddress(const char* fname) -> void* {
   void* pret = (void*)GetGLProcAddress(fname);
 
-  if (pret == (void*)-1 || pret == (void*)1 || pret == (void*)2 ||
-      pret == (void*)3)
-    pret = (void*)0;
+  if (pret == (void*)-1 || pret == (void*)1 || pret == (void*)2 || pret == (void*)3) pret = (void*)0;
 
   return pret;
 }
-
 
 GL_CREATE_SHADER_PROC glCreateShader = nullptr;
 

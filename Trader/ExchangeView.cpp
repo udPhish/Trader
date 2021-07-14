@@ -2,12 +2,10 @@
 
 ExchangeView::ExchangeView(wxWindow* parent, Exchange& exchange)
     : wxWindow(parent, wxID_ANY),
-      m_exchange{exchange},
-      m_list_markets{new wxListBox{this, wxID_ANY, wxDefaultPosition,
-                                   wxDefaultSize, 0, nullptr,
-                                   wxLB_SINGLE | wxLB_SORT}},
-      m_choice_timeframe{new wxChoice{this, wxID_ANY}} {
-  wxBoxSizer* outer = new wxBoxSizer(wxVERTICAL);
+      m_list_markets{new wxListBox{this, wxID_ANY, wxDefaultPosition, wxDefaultSize, 0, nullptr, wxLB_SINGLE | wxLB_SORT}},
+      m_choice_timeframe{new wxChoice{this, wxID_ANY}},
+      m_exchange{exchange} {
+  auto* outer = new wxBoxSizer(wxVERTICAL);
 
   m_choice_timeframe->Append({"Minute", "Hour", "Day", "Week", "Month"});
   m_choice_timeframe->Select(0);
@@ -26,25 +24,26 @@ ExchangeView::ExchangeView(wxWindow* parent, Exchange& exchange)
   SetAutoLayout(true);
 }
 
-History& ExchangeView::SelectedCandles() {
+auto ExchangeView::SelectedCandles() -> History& {
   wxString market_selection = m_list_markets->GetStringSelection();
   wxString timeframe_selection = m_choice_timeframe->GetStringSelection();
-  if (market_selection == "" || timeframe_selection == "")
+  if (market_selection == "" || timeframe_selection == "") {
     Logger::Log<Logger::Level::FatalError>("Invalid market selection");
+  }
   Market::TimeFrame timeframe;
-  if (timeframe_selection == "Minute")
+  if (timeframe_selection == "Minute") {
     timeframe = Market::TimeFrame::MINUTE;
-  else if (timeframe_selection == "Hour")
+  } else if (timeframe_selection == "Hour") {
     timeframe = Market::TimeFrame::HOUR;
-  else if (timeframe_selection == "Day")
+  } else if (timeframe_selection == "Day") {
     timeframe = Market::TimeFrame::DAY;
-  else if (timeframe_selection == "Week")
+  } else if (timeframe_selection == "Week") {
     timeframe = Market::TimeFrame::WEEK;
-  else if (timeframe_selection == "Month")
+  } else if (timeframe_selection == "Month") {
     timeframe = Market::TimeFrame::MONTH;
-  else
+  } else {
     timeframe = Market::TimeFrame::DAY;
+  }
 
-  return m_exchange.markets.at(market_selection.ToStdString())
-      .candles.at(timeframe);
+  return m_exchange.markets.at(market_selection.ToStdString()).candles.at(timeframe);
 }

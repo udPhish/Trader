@@ -1,8 +1,12 @@
 #pragma once
 
 #include <array>
+#include <chrono>
 #include <filesystem>
 #include <fstream>
+#include <sstream>
+
+#include "date.h"
 
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/archive/text_oarchive.hpp>
@@ -20,62 +24,89 @@
 //    double left, double right, double bottom, double top, double near,
 //    double far);
 
-template <class T>
-void Save(const T& obj, std::filesystem::path path) {
+template<class T>
+void Save(const T& obj, std::filesystem::path path)
+{
   std::ofstream ofs;
   ofs.open(path);
   boost::archive::text_oarchive oa(ofs);
   oa << obj;
 }
-template <class T>
-void Save(const T& obj, std::string filename) {
-  Save(obj, std::filesystem::path(std::string(boost::archive::tmpdir()) + "\\" +
-                                  filename));
+template<class T>
+void Save(const T& obj, std::string filename)
+{
+  Save(obj,
+       std::filesystem::path(std::string(boost::archive::tmpdir()) + "\\"
+                             + filename));
 }
 // template <class T>
 // void Save(const T& obj) {
 //  Save(obj, boost::archive::tmpdir());
 //}
-template <class T>
-T Load(std::filesystem::path path) {
+template<class T>
+T Load(std::filesystem::path path)
+{
   std::ifstream ifs;
   ifs.open(path);
   boost::archive::text_iarchive ia(ifs);
-  T t;
+  T                             t;
   ia >> t;
   return t;
 }
-template <class T>
-T Load(std::string filename) {
-  return Load<T>(std::filesystem::path(std::string(boost::archive::tmpdir()) +
-                                       "\\" + filename));
+template<class T>
+T Load(std::string filename)
+{
+  return Load<T>(std::filesystem::path(std::string(boost::archive::tmpdir())
+                                       + "\\" + filename));
 }
 // template <class T>
 // T Load() {
 //  return Load<T>(boost::archive::tmpdir());
 //}
-template <class T>
-std::vector<std::vector<T>> Combinations(std::vector<T> values,
-                                         std::size_t length) {
+std::vector<std::vector<std::size_t>> CombinationsIndexHelper(
+    std::size_t sample_size,
+    std::size_t length,
+    std::size_t skip);
+std::vector<std::vector<std::size_t>> CombinationsIndex(std::size_t sample_size,
+                                                        std::size_t length);
+template<class T>
+std::vector<std::vector<T>> Combinations(const std::vector<T>& values,
+                                         std::size_t           length)
+{
   std::vector<std::vector<T>> ret;
-  std::vector<std::vector<T>> combs;
-  if (length == 1) {
-    for(auto& value: values){
-      std::vector<T> v;
-      v.push_back(value);
-      ret.push_back(v);
-    }
-    return ret;
-  }
-  for (std::size_t i = 0; i < values.size() - length; ++i) {
-    combs = Combinations(std::vector<T>{values.begin() + 1, values.end()},
-                         length - 1);
-    for (auto& c : combs) {
-      std::vector<T> comb;
-      comb.push_back(values[i]);
-      comb.insert(comb.end(), c.begin(), c.end());
-      ret.push_back(comb);
-    }
+  for (auto& comb : CombinationsIndex(values.size(), length))
+  {
+    std::vector<T> vec;
+    for (auto& i : comb)
+      vec.push_back(values[i]);
+    ret.push_back(vec);
   }
   return ret;
+}
+template<class T>
+std::vector<std::vector<std::unique_ptr<T>>> Combinations(
+    const std::vector<std::unique_ptr<T>>& values,
+    std::size_t                            length)
+{
+  std::vector<std::vector<std::unique_ptr<T>>> ret;
+  for (auto& comb : CombinationsIndex(values.size(), length))
+  {
+    std::vector<std::unique_ptr<T>> vec;
+    for (auto& i : comb)
+    {
+      vec.push_back(values[i]->Clone());
+    }
+    ret.push_back(std::move(vec));
+  }
+  return ret;
+}
+template<class _Scale>
+std::string MillisecondsToString(std::chrono::milliseconds time)
+{
+  using namespace date;
+  auto time_point = floor<_Scale>(
+      std::chrono::time_point<std::chrono::system_clock>{} + time);
+  std::stringstream ss;
+  ss << time_point;
+  return ss.str();
 }

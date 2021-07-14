@@ -63,7 +63,7 @@ struct EntityCandle : public UD::World::World<double, 2>::Entity {
   }
 
  protected:
-  virtual void DrawImpl() /* const*/ override {
+   void DrawImpl() /* const*/ override {
     this->DrawPolygon<4>({top_left(), top_right(),
                           bottom_right(),
                           bottom_left()});
