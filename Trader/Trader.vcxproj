@@ -92,6 +92,9 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <AdditionalIncludeDirectories>C:\Users\Guy\dev\extern\wxwidgets\3.1.5\include\msvc;C:\Users\Guy\dev\extern\wxwidgets\3.1.5\include;C:\Users\Guy\dev\extern\boost_1_75_0;C:\Users\Guy\dev\extern\openssl\openssl\include;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -106,6 +109,9 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <AdditionalIncludeDirectories>C:\Users\Guy\dev\extern\wxwidgets\3.1.5\include\msvc;C:\Users\Guy\dev\extern\wxwidgets\3.1.5\include;C:\Users\Guy\dev\extern\boost_1_75_0;C:\Users\Guy\dev\extern\openssl\openssl\include;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -139,16 +145,16 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>C:\Users\Guy\dev\extern\wxwidgets\include\msvc;C:\Users\Guy\dev\extern\wxwidgets\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Guy\dev\extern\wxwidgets\3.1.5\include\msvc;C:\Users\Guy\dev\extern\wxwidgets\3.1.5\include;C:\Users\Guy\dev\extern\boost_1_75_0;C:\Users\Guy\dev\extern\openssl\openssl\include;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Users\Guy\dev\extern\wxwidgets\lib\vc_x64_lib;</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\Users\Guy\dev\extern\wxwidgets\3.1.5\lib\vc_x64_lib;C:\Users\Guy\dev\extern\openssl\openssl;C:\Users\Guy\dev\extern\boost_1_75_0\stage\lib;</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
