@@ -94,7 +94,8 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>C:\Users\Guy\dev\extern\wxwidgets\3.1.5\include\msvc;C:\Users\Guy\dev\extern\wxwidgets\3.1.5\include;C:\Users\Guy\dev\extern\boost_1_75_0;C:\Users\Guy\dev\extern\openssl\openssl\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -111,7 +112,8 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>C:\Users\Guy\dev\extern\wxwidgets\3.1.5\include\msvc;C:\Users\Guy\dev\extern\wxwidgets\3.1.5\include;C:\Users\Guy\dev\extern\boost_1_75_0;C:\Users\Guy\dev\extern\openssl\openssl\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -128,12 +130,14 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>C:\Users\Guy\dev\extern\wxwidgets\3.1.5\include\msvc;C:\Users\Guy\dev\extern\wxwidgets\3.1.5\include;C:\Users\Guy\dev\extern\boost_1_75_0;C:\Users\Guy\dev\extern\openssl\openssl\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Users\Guy\dev\extern\wxwidgets\3.1.5\lib\vc_x64_lib;C:\Users\Guy\dev\extern\openssl\openssl;C:\Users\Guy\dev\extern\boost_1_75_0\stage\lib;</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>
+      </AdditionalLibraryDirectories>
       <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;libcrypto_static.lib;libssl_static.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -147,14 +151,16 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
-      <AdditionalIncludeDirectories>C:\Users\Guy\dev\extern\wxwidgets\3.1.5\include\msvc;C:\Users\Guy\dev\extern\wxwidgets\3.1.5\include;C:\Users\Guy\dev\extern\boost_1_75_0;C:\Users\Guy\dev\extern\openssl\openssl\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>
+      </AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Users\Guy\dev\extern\wxwidgets\3.1.5\lib\vc_x64_lib;C:\Users\Guy\dev\extern\openssl\openssl;C:\Users\Guy\dev\extern\boost_1_75_0\stage\lib;</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>
+      </AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
