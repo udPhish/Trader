@@ -1,0 +1,3 @@
+[submodule "extern/UDLib"]
+	path = extern/UDLib
+	url = https://github.com/udPhish/UDLib.git
