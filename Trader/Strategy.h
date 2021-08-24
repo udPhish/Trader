@@ -6,8 +6,9 @@
 #include <set>
 #include <vector>
 
+#include "libudph/Class/Interface.h"
+
 #include "Candle.h"
-#include "Class.h"
 #include "Indicator.h"
 #include "Logger.h"
 #include "Strategies.h"
