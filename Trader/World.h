@@ -12,13 +12,14 @@
 
 #include <wx/glcanvas.h>
 
-#include "Class.h"
+#include "libudph/Class/Interface.h"
+#include "libudph/Container/Container.h"
+#include "libudph/Container/Iterator.h"
+#include "libudph/Math/udMath.h"
+#include "libudph/Math/Tensor.h"
+
 #include "Colour.h"
-#include "Container.h"
-#include "Iterator.h"
 #include "Logger.h"
-#include "Math.h"
-#include "Tensor.h"
 
 namespace UD::World
 {
@@ -59,7 +60,7 @@ struct Point : public Tensor::Vector<Dimension, Type>
   {
   }
 };
-template<class Type, Math::Type::ULong Dimension>
+template<class Type, UD::Math::Type::ULong Dimension>
 struct Mesh;
 template<class Type, Math::Type::ULong Dimension, class _Leaf>
 struct UD::Interface::Traits::Descriptor<Mesh<Type, Dimension>, _Leaf>
