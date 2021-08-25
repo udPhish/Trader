@@ -14,4 +14,6 @@ Logger::Logger(wxWindow* parent)
   SetForegroundColour(wxColor("white"));
 
   SetMinSize(this->GetFont().GetPixelSize() * 8);
+
+  m_log->SetLogLevel(wxLOG_User);
 }
