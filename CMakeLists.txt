@@ -11,7 +11,7 @@ PROJECT_LOAD_GIT_REPOSITORY(Boost "https://github.com/boostorg/boost.git" master
 PROJECT_LOAD_GIT_REPOSITORY(libudph "https://github.com/udPhish/libudph.git" master)
 PROJECT_LOAD_GIT_REPOSITORY(wxwidgets "https://github.com/wxWidgets/wxWidgets.git" master)
 
-target_create_exe(Trader)
+target_create_gui(Trader)
 TARGET_SET_DIR(Trader Trader)
 
 target_append_src(
@@ -66,7 +66,9 @@ target_append_hdr(
 )
 
 TARGET_APPEND_DEP(Trader OpenSSL::SSL)
-TARGET_APPEND_DEP(Trader wxcore)
+TARGET_APPEND_DEP(Trader wx::base)
+TARGET_APPEND_DEP(Trader wx::core)
+TARGET_APPEND_DEP(Trader wx::gl)
 TARGET_APPEND_DEP(Trader libudph::libudph)
 TARGET_APPEND_DEP(Trader Boost::beast)
 TARGET_APPEND_DEP(Trader Boost::asio)
