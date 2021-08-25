@@ -4,7 +4,7 @@
 
 #include <wx/colour.h>
 
-#include "Tensor.h"
+#include "libudph/Math/Tensor.h"
 
 namespace UD
 {

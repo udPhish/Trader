@@ -12,13 +12,14 @@
 
 #include <wx/glcanvas.h>
 
-#include "Class.h"
+#include "libudph/Class/Interface.h"
+#include "libudph/Container/Container.h"
+#include "libudph/Container/Iterator.h"
+#include "libudph/Math/udMath.h"
+#include "libudph/Math/Tensor.h"
+
 #include "Colour.h"
-#include "Container.h"
-#include "Iterator.h"
 #include "Logger.h"
-#include "Math.h"
-#include "Tensor.h"
 
 namespace UD::World
 {
@@ -59,10 +60,10 @@ struct Point : public Tensor::Vector<Dimension, Type>
   {
   }
 };
-template<class Type, Math::Type::ULong Dimension>
+template<class Type, UD::Math::Type::ULong Dimension>
 struct Mesh;
 template<class Type, Math::Type::ULong Dimension, class _Leaf>
-struct UD::Interface::Traits::Descriptor<Mesh<Type, Dimension>, _Leaf>
+struct UD::Interface::Traits::InheritDescriptor<Mesh<Type, Dimension>, _Leaf>
     : UD::Interface::Traits::Tag<Mesh<Type, Dimension>,
                                  UD::Interface::Modifier::Tag::Abstract>
 {
@@ -189,7 +190,7 @@ struct Mesh : public UD::Interface::Interface<Mesh<Type, Dimension>>
 template<class Type, Math::Type::ULong Dimension>
 struct VariableMesh;
 template<class Type, Math::Type::ULong Dimension, class _Leaf>
-struct UD::Interface::Traits::Descriptor<VariableMesh<Type, Dimension>, _Leaf>
+struct UD::Interface::Traits::InheritDescriptor<VariableMesh<Type, Dimension>, _Leaf>
     : public Inherit<_Leaf, Mesh<Type, Dimension>>
 {
 };
@@ -269,7 +270,7 @@ template<class Type,
          Math::Type::ULong CountPoints,
          class _Leaf>
 struct UD::Interface::Traits::
-    Descriptor<StaticMesh<Type, Dimension, CountPoints>, _Leaf>
+    InheritDescriptor<StaticMesh<Type, Dimension, CountPoints>, _Leaf>
     : public Inherit<_Leaf,
                      Mesh<Type, Dimension>,
                      Tensor::Vector<CountPoints,
@@ -356,7 +357,7 @@ template<class Type, Math::Type::ULong Dimension>
 struct Rectangle;
 
 template<class Type, Math::Type::ULong Dimension, class _Leaf>
-struct UD::Interface::Traits::Descriptor<Rectangle<Type, Dimension>, _Leaf>
+struct UD::Interface::Traits::InheritDescriptor<Rectangle<Type, Dimension>, _Leaf>
     : UD::Interface::Traits::Inherit<_Leaf, StaticMesh<Type, Dimension, 4>>
 {
 };

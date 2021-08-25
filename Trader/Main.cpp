@@ -276,7 +276,7 @@ auto Main::PlanList() -> std::vector<Plan>
   auto strategies2 = std::vector<std::unique_ptr<StrategyBase>>{
       CreateAllStrategyCombinations<SimpleMovingAverage<8, Metric::Volume>,
                                     Identity<Metric::Volume>>()};
-  auto strategy_combinations2 = Combinations(strategies, 2);
+  auto strategy_combinations2 = Combinations(strategies2, 2);
 
   for (auto& entry_strategies : strategy_combinations2)
   {

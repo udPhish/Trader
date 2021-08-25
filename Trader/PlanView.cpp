@@ -233,7 +233,7 @@ void PlanView::PostNotify(const wxString& s)
 auto PlanView::Entry() -> wxThread::ExitCode
 {
   PostNotify("Thread Start");
-  const int                             extraction_limit = 10;
+  const int                             extraction_limit = 100;
   bool                                  should_notify    = false;
   double                                assess_total     = 0;
   std::unordered_map<std::string, Plan> plans;
