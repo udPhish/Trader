@@ -87,7 +87,7 @@ struct Comparison<ComparisonType::NotEqual>
 
 struct StrategyBase;
 template<class _Leaf>
-struct UD::Interface::Traits::Descriptor<StrategyBase, _Leaf>
+struct UD::Interface::Traits::InheritDescriptor<StrategyBase, _Leaf>
     : public UD::Interface::Traits::Tag<StrategyBase,
                                         UD::Tag::Interface::Modifier::Abstract>
 {
@@ -119,7 +119,7 @@ template<class T>
 struct StrategyDerived;
 
 template<class _Leaf, class T>
-struct UD::Interface::Traits::Descriptor<StrategyDerived<T>, _Leaf>
+struct UD::Interface::Traits::InheritDescriptor<StrategyDerived<T>, _Leaf>
     : public UD::Interface::Traits::Inherit<_Leaf, StrategyBase>
     , public UD::Interface::Traits::Tag<StrategyDerived<T>,
                                         UD::Tag::Interface::Modifier::Abstract>
@@ -171,7 +171,8 @@ template<class Ind1, class Ind2, int _ComparisonType>
 struct Strategy;
 
 template<class _Leaf, class Ind1, class Ind2, int _ComparisonType>
-struct UD::Interface::Traits::Descriptor<Strategy<Ind1, Ind2, _ComparisonType>,
+struct UD::Interface::Traits::
+    InheritDescriptor<Strategy<Ind1, Ind2, _ComparisonType>,
                                          _Leaf>
     : public UD::Interface::Traits::
           Inherit<_Leaf, StrategyDerived<Strategy<Ind1, Ind2, _ComparisonType>>>
